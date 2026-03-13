@@ -47,19 +47,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <span>The Next Interview</span>
               </Link>
 
-              <div className="flex items-center gap-4 text-sm">
-                <Link href="/resume" className="nav-link">Resumes</Link>
+              <div className="flex items-center gap-3 text-sm">
+                <Link href="/resume" className="nav-link hidden sm:block">Resumes</Link>
                 <ThemeToggle />
                 <Link
                   href="/resume"
-                  className="btn-accent px-4 py-1.5 rounded-lg text-white text-sm font-medium"
+                  className="btn-accent px-3 sm:px-4 py-1.5 rounded-lg text-white text-sm font-medium whitespace-nowrap"
                 >
-                  Start Prep →
+                  <span className="hidden sm:inline">Start Prep →</span>
+                  <span className="sm:hidden">Prep →</span>
                 </Link>
               </div>
             </div>
           </nav>
-          <main className="max-w-6xl mx-auto px-4 py-8">
+          <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
             {children}
           </main>
         </ThemeProvider>

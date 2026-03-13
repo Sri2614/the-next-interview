@@ -8,6 +8,7 @@ from .question_generator import question_generator_agent
 from .code_challenge import code_challenge_agent
 from .answer_evaluator import answer_evaluator_agent
 from .readiness_assessor import readiness_assessor_agent
+from .recommendation_agent import recommendation_agent
 
 # Phase 1: Parse resume + match vacancies in parallel
 data_extraction_pipeline = ParallelAgent(
@@ -36,11 +37,12 @@ interview_system = SequentialAgent(
     description=(
         "Full interview preparation pipeline. "
         "Given a resume and vacancy, it matches skills, generates questions and coding challenges, "
-        "evaluates candidate answers, and produces a readiness report."
+        "evaluates candidate answers, produces a readiness report, and recommends courses."
     ),
     sub_agents=[
         data_extraction_pipeline,
         prep_pipeline,
         assessment_pipeline,
+        recommendation_agent,  # Phase 4: recommend courses based on study plan
     ],
 )

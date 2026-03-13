@@ -1,0 +1,24 @@
+{
+  "id": "frontend-vue-enterprise",
+  "title": "Senior Frontend Engineer (Vue.js)",
+  "company": "Enterprise Connect",
+  "industry": "enterprise software / HR tech",
+  "location": "Birmingham, UK (Hybrid 2d)",
+  "salaryRange": "£60,000 – £75,000",
+  "type": "full-time",
+  "description": "Enterprise Connect builds HR and workforce management software used by 500 enterprise clients across Europe. Our frontend is built with Vue 3 and TypeScript. You'll join a team of 4 frontend engineers working on complex data-heavy interfaces — think scheduling grids, bulk data operations, and real-time dashboards.",
+  "requirements": {
+    "mustHave": ["Vue 3", "TypeScript", "Pinia or Vuex", "REST APIs", "Component libraries", "Performance optimization"],
+    "niceToHave": ["Vue Test Utils", "Cypress", "D3.js or Recharts", "WebSockets", "i18n / internationalisation"],
+    "yearsExperience": 4
+  },
+  "techStack": ["Vue 3", "TypeScript", "Pinia", "Vite", "Tailwind CSS", "Cypress", "Chart.js", "WebSockets"],
+  "responsibilities": [
+    "Build complex scheduling and workforce management UI components",
+    "Optimise rendering performance for tables with 10k+ rows",
+    "Lead migration from Vue 2 (Options API) to Vue 3 (Composition API)",
+    "Mentor 2 mid-level frontend engineers"
+  ],
+  "interviewProcess": ["30min intro", "Frontend take-home task", "60min technical review", "45min values interview"],
+  "postedDate": "2026-03-03"
+}

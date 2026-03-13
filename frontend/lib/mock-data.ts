@@ -8,7 +8,7 @@ import path from 'path'
 import type { MockResume } from '@/types/resume'
 import type { Vacancy } from '@/types/vacancy'
 
-const DATA_DIR = path.join(process.cwd(), '..', 'data')
+const DATA_DIR = path.join(process.cwd(), 'data')
 
 export function getAllResumes(): MockResume[] {
   const resumeDir = path.join(DATA_DIR, 'resumes')
@@ -17,6 +17,8 @@ export function getAllResumes(): MockResume[] {
 }
 
 export function getResumeById(id: string): MockResume | null {
+  // 'custom' is an uploaded resume — loaded client-side from localStorage, not from disk
+  if (id === 'custom') return null
   const filePath = path.join(DATA_DIR, 'resumes', `${id}.json`)
   if (!fs.existsSync(filePath)) return null
   return JSON.parse(fs.readFileSync(filePath, 'utf-8')) as MockResume

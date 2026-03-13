@@ -1,0 +1,24 @@
+{
+  "id": "java-microservices-bank",
+  "title": "Java Software Engineer (Microservices)",
+  "company": "Meridian Bank",
+  "industry": "banking / financial services",
+  "location": "London, UK (Hybrid 4d)",
+  "salaryRange": "£65,000 – £80,000",
+  "type": "full-time",
+  "description": "Meridian Bank is modernising its core banking platform, breaking a 20-year-old monolith into cloud-native microservices. You'll join the Core Banking Platform team and build Java services that process millions of transactions daily, with strict regulatory requirements.",
+  "requirements": {
+    "mustHave": ["Java 11+", "Spring Boot", "Microservices", "SQL (Oracle or PostgreSQL)", "REST API design", "Git", "Agile"],
+    "niceToHave": ["Spring Cloud", "Kafka", "Kubernetes", "Reactive programming (WebFlux)", "Banking domain knowledge"],
+    "yearsExperience": 3
+  },
+  "techStack": ["Java 17", "Spring Boot 3", "Spring Cloud", "Oracle DB", "Kafka", "Docker", "Kubernetes", "ELK Stack", "Jenkins"],
+  "responsibilities": [
+    "Develop new microservices for account management and payments domain",
+    "Participate in event-storming and DDD workshops with business analysts",
+    "Write unit and integration tests to 80%+ coverage",
+    "Ensure solutions comply with PCI-DSS and FCA regulatory requirements"
+  ],
+  "interviewProcess": ["30min HR screen", "60min Java technical interview", "90min pair programming", "45min final panel"],
+  "postedDate": "2026-03-01"
+}

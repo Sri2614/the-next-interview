@@ -3,7 +3,7 @@
  * New API: POST /run and POST /run_sse with appName/userId/sessionId in the body.
  */
 
-const ADK_BASE = process.env.NEXT_PUBLIC_ADK_URL ?? 'http://localhost:8000'
+const ADK_BASE = process.env.NEXT_PUBLIC_ADK_URL || 'https://the-next-interview-agents-379802788252.us-central1.run.app'
 const APP_NAME = 'interview_system'
 
 export async function ensureSession(userId: string, sessionId: string): Promise<void> {

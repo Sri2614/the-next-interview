@@ -101,6 +101,24 @@ export interface ReadinessReport {
   estimatedPrepTime: string
 }
 
+export interface CourseResource {
+  title: string
+  provider: string
+  url: string
+  duration: string
+  why: string
+}
+
+export interface CourseRecommendation {
+  topic: string
+  priority: 'high' | 'medium' | 'low'
+  courses: CourseResource[]
+}
+
+export interface RecommendationReport {
+  recommendations: CourseRecommendation[]
+}
+
 export interface AssessmentSession {
   sessionId: string
   prepSessionId: string
@@ -111,4 +129,7 @@ export interface AssessmentSession {
   answers: QuestionAnswer[]
   evaluations?: AnswerEvaluation[]
   report?: ReadinessReport
+  recommendations?: RecommendationReport
+  attemptNumber?: number
+  previousScore?: number
 }

@@ -1,6 +1,7 @@
 'use client'
 
-import type { PrepSession, AssessmentSession } from '@/types/session'
+import type { PrepSession, AssessmentSession, RecommendationReport } from '@/types/session'
+import type { MockResume } from '@/types/resume'
 
 const PREP_SESSION_KEY = 'tni_prep_session'
 const ASSESSMENT_SESSION_KEY = 'tni_assessment_session'
@@ -76,4 +77,45 @@ export function getMatchCache(resumeId: string): MatchResult[] | null {
 export function clearMatchCache(resumeId: string): void {
   if (typeof window === 'undefined') return
   localStorage.removeItem(`tni_match_${resumeId}`)
+}
+
+// ─── Custom (Uploaded) Resume ─────────────────────────────────────────────────
+
+const CUSTOM_RESUME_KEY = 'tni_custom_resume'
+
+export function saveCustomResume(resume: MockResume): void {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(CUSTOM_RESUME_KEY, JSON.stringify(resume))
+}
+
+export function getCustomResume(): MockResume | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(CUSTOM_RESUME_KEY)
+    return raw ? (JSON.parse(raw) as MockResume) : null
+  } catch {
+    return null
+  }
+}
+
+export function clearCustomResume(): void {
+  if (typeof window === 'undefined') return
+  localStorage.removeItem(CUSTOM_RESUME_KEY)
+}
+
+// ─── Recommendations ──────────────────────────────────────────────────────────
+
+export function saveRecommendations(sessionId: string, recs: RecommendationReport): void {
+  if (typeof window === 'undefined') return
+  const a = getAssessmentSession()
+  if (a && a.sessionId === sessionId) {
+    a.recommendations = recs
+    saveAssessmentSession(a)
+  }
+}
+
+export function getRecommendations(sessionId: string): RecommendationReport | null {
+  const a = getAssessmentSession()
+  if (!a || a.sessionId !== sessionId) return null
+  return a.recommendations ?? null
 }

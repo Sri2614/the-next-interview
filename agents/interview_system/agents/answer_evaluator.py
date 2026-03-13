@@ -44,7 +44,7 @@ Be honest but encouraging. The goal is to help the candidate improve.
 Focus on the GAP between their answer and the ideal answer.
 
 Return JSON: { "evaluations": [...], "evaluatedAt": "...", "vacancyId": "..." }
-Store in session state as 'answer_evaluations'.
+Do not call any other tools — just return the JSON.
 """,
     tools=[load_vacancy],
     output_key="answer_evaluations",

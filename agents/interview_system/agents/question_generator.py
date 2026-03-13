@@ -42,7 +42,7 @@ For each question return:
 - keyPoints: 3-5 bullet points the ideal answer should cover (for evaluation)
 
 Return as JSON: { "questions": [...], "vacancyTitle": "...", "generatedAt": "..." }
-Store in session state as 'generated_questions'.
+Do not call any other tools — just return the JSON.
 """,
     tools=[load_vacancy],
     output_key="generated_questions",

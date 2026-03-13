@@ -1,0 +1,31 @@
+{
+  "id": "java-dev-3yr",
+  "name": "Alex Chen",
+  "role": "Java Developer",
+  "yearsExperience": 3,
+  "summary": "Backend Java developer with 3 years building RESTful microservices for e-commerce platforms. Comfortable with Spring Boot and relational databases. Looking to move into fintech where performance and correctness matter.",
+  "skills": {
+    "languages": ["Java 11", "Java 17", "SQL", "Python"],
+    "frameworks": ["Spring Boot 2.x", "Spring MVC", "Hibernate", "JUnit 5", "Mockito"],
+    "tools": ["Maven", "Git", "Docker", "Jenkins", "IntelliJ IDEA", "Postman"],
+    "cloud": ["AWS EC2", "AWS S3", "AWS RDS"],
+    "concepts": ["Microservices", "REST APIs", "ORM", "CI/CD", "Agile/Scrum", "Unit Testing"]
+  },
+  "experience": [
+    {
+      "company": "ShopNow Ltd",
+      "title": "Junior → Mid Java Developer",
+      "duration": "Jun 2021 – Present",
+      "bullets": [
+        "Built and maintained 4 Spring Boot microservices handling 50k daily orders",
+        "Reduced API response time by 40% by adding Redis caching layer",
+        "Introduced integration testing with Testcontainers, raising coverage from 45% to 78%",
+        "Participated in on-call rotation, resolving 3-4 production incidents per month"
+      ]
+    }
+  ],
+  "education": [
+    { "degree": "BSc Computer Science", "institution": "University of Leeds", "year": 2021 }
+  ],
+  "certifications": ["AWS Certified Developer – Associate (2023)"]
+}

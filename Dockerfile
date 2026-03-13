@@ -9,7 +9,8 @@ RUN pip install --no-cache-dir "hatchling" && \
         "google-adk>=1.0.0" \
         "pydantic>=2.0.0" \
         "python-dotenv>=1.0.0" \
-        "uvicorn[standard]"
+        "uvicorn[standard]" \
+        "google-cloud-documentai>=2.0.0"
 
 # Copy agent code
 COPY agents/ .

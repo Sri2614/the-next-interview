@@ -11,7 +11,8 @@ dependencies = [
     "google-adk>=1.0.0",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
+    "google-cloud-documentai>=2.0.0",
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["interview_system", "tools"]
+packages = ["interview_system", "vacancy_matcher", "question_generator", "code_challenge", "answer_evaluator", "readiness_assessor", "resume_parser", "recommendation_agent", "tools"]

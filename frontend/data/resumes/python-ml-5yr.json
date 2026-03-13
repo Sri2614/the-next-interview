@@ -1,0 +1,39 @@
+{
+  "id": "python-ml-5yr",
+  "name": "Priya Sharma",
+  "role": "ML Engineer",
+  "yearsExperience": 5,
+  "summary": "Machine learning engineer with 5 years building and deploying ML pipelines at scale. Strong background in NLP and computer vision. Experienced with Google Cloud Platform and MLOps practices.",
+  "skills": {
+    "languages": ["Python 3.x", "SQL", "Bash", "Scala"],
+    "frameworks": ["PyTorch", "TensorFlow", "scikit-learn", "HuggingFace Transformers", "FastAPI", "Pandas", "NumPy"],
+    "tools": ["Docker", "Kubernetes", "Kubeflow", "MLflow", "Git", "Jupyter", "Airflow"],
+    "cloud": ["GCP Vertex AI", "Google Cloud Storage", "BigQuery", "GKE", "Cloud Functions"],
+    "concepts": ["MLOps", "Feature Engineering", "Model Serving", "A/B Testing", "Data Pipelines", "NLP", "Computer Vision"]
+  },
+  "experience": [
+    {
+      "company": "DataStream AI",
+      "title": "Senior ML Engineer",
+      "duration": "Mar 2022 – Present",
+      "bullets": [
+        "Led development of real-time recommendation system serving 2M daily active users",
+        "Reduced model inference latency by 60% through quantization and batching optimizations",
+        "Built end-to-end MLOps pipeline on GCP Vertex AI with automated retraining"
+      ]
+    },
+    {
+      "company": "TechVision Corp",
+      "title": "ML Engineer",
+      "duration": "Sep 2019 – Mar 2022",
+      "bullets": [
+        "Built NLP pipeline for document classification with 94% accuracy",
+        "Deployed computer vision models to production using TensorFlow Serving"
+      ]
+    }
+  ],
+  "education": [
+    { "degree": "MSc Machine Learning", "institution": "Imperial College London", "year": 2019 }
+  ],
+  "certifications": ["Google Professional ML Engineer (2023)", "TensorFlow Developer Certificate (2022)"]
+}

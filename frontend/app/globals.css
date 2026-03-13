@@ -197,3 +197,24 @@ pre {
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--border-hover), transparent);
 }
+
+/* ─── Mobile utilities ───────────────────────────────────────────────────────── */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* Ensure buttons and interactive elements have comfortable touch targets */
+@media (max-width: 640px) {
+  button, a[class*="rounded"] {
+    min-height: 36px;
+  }
+}

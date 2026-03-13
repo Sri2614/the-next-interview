@@ -6,7 +6,7 @@ import type { Vacancy } from '@/types/vacancy'
 import type { GeneratedQuestion, CodeChallenge, PrepSession } from '@/types/session'
 import { getPrepSession, savePrepSession } from '@/lib/session'
 
-const ADK_BASE = process.env.NEXT_PUBLIC_ADK_URL ?? 'http://localhost:8000'
+const ADK_BASE = process.env.NEXT_PUBLIC_ADK_URL || 'https://the-next-interview-agents-379802788252.us-central1.run.app'
 
 interface Props {
   vacancy: Vacancy
@@ -204,25 +204,25 @@ Return complete JSON CodeChallenge with: title, description, difficulty, languag
 
   return (
     <div className="space-y-5">
-      {/* Tabs */}
-      <div className="flex gap-2">
+      {/* Tabs + CTA */}
+      <div className="flex flex-wrap items-center gap-2">
         {(['questions', 'challenge'] as Tab[]).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className="px-5 py-2 rounded-xl text-sm font-medium transition-colors"
+            className="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors whitespace-nowrap"
             style={tab === t
               ? { background: 'var(--accent)', color: 'white' }
               : { background: 'var(--bg-card)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }
             }
           >
-            {t === 'questions' ? `📝 Interview Questions ${questions.length ? `(${questions.length})` : ''}` : `💻 Coding Challenge ${challenge ? '✓' : ''}`}
+            {t === 'questions' ? `📝 Questions ${questions.length ? `(${questions.length})` : ''}` : `💻 Challenge ${challenge ? '✓' : ''}`}
           </button>
         ))}
         {questions.length > 0 && (
           <button
             onClick={goToAssessment}
-            className="ml-auto px-5 py-2 rounded-xl text-sm font-medium text-white transition-all"
+            className="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium text-white transition-all whitespace-nowrap sm:ml-auto"
             style={{ background: 'var(--accent)' }}
           >
             Start Assessment →

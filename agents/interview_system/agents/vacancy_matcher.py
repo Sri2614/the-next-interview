@@ -40,8 +40,8 @@ For EACH vacancy, produce a MatchResult with:
 - **strengthSummary**: 1-2 sentences on why the candidate is strong for this role
 - **gapSummary**: 1-2 sentences on the key gaps to address
 
-Return a JSON object with a "results" array sorted by overallScore descending.
-Store in session state as 'match_results'.
+Return ONLY a valid JSON object with a "results" array sorted by overallScore descending.
+Do not call any other tools. Do not try to save or store anything — just return the JSON.
 """,
     tools=[load_all_vacancies],
     output_key="match_results",

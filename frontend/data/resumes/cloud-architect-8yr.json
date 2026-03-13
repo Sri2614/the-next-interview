@@ -1,0 +1,43 @@
+{
+  "id": "cloud-architect-8yr",
+  "name": "James Okafor",
+  "role": "Cloud Solutions Architect",
+  "yearsExperience": 8,
+  "summary": "Cloud architect with 8 years designing and scaling distributed systems on AWS and GCP. Led architecture for platforms serving 50M+ users. Specialist in cost optimization, multi-cloud strategy, and cloud-native migrations.",
+  "skills": {
+    "languages": ["Python", "Go", "Bash", "HCL", "SQL"],
+    "frameworks": ["Terraform", "Pulumi", "Ansible", "CDK", "gRPC", "Kafka"],
+    "tools": ["Docker", "Kubernetes", "Helm", "ArgoCD", "Datadog", "PagerDuty", "Git"],
+    "cloud": ["AWS (EC2, EKS, RDS, Lambda, VPC, IAM, S3, CloudFront, SQS, SNS)", "GCP (GKE, Cloud Run, BigQuery, Pub/Sub, Vertex AI)", "Azure AKS"],
+    "concepts": ["Microservices", "Event-Driven Architecture", "Multi-Cloud", "FinOps", "Zero Trust Security", "Disaster Recovery", "Site Reliability Engineering"]
+  },
+  "experience": [
+    {
+      "company": "GlobalPay Inc",
+      "title": "Principal Cloud Architect",
+      "duration": "Jan 2020 – Present",
+      "bullets": [
+        "Architected multi-region payment infrastructure processing $5B annually with 99.999% uptime",
+        "Led cloud migration of 80+ legacy services saving $2.4M/year in infrastructure costs",
+        "Defined cloud governance framework adopted by 200+ engineers across 4 product teams"
+      ]
+    },
+    {
+      "company": "Nexus Technology",
+      "title": "Senior Cloud Engineer",
+      "duration": "Mar 2016 – Jan 2020",
+      "bullets": [
+        "Designed Kubernetes-based PaaS platform adopted by 15 internal engineering teams",
+        "Reduced P99 latency by 70% through CDN optimization and database read replicas"
+      ]
+    }
+  ],
+  "education": [
+    { "degree": "MEng Computer Engineering", "institution": "University of Manchester", "year": 2016 }
+  ],
+  "certifications": [
+    "AWS Certified Solutions Architect – Professional (2024)",
+    "Google Professional Cloud Architect (2023)",
+    "Certified Kubernetes Application Developer (2022)"
+  ]
+}

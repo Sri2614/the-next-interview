@@ -6,7 +6,7 @@ import type { GeneratedQuestion, QuestionAnswer, AnswerEvaluation, AssessmentSes
 import { getPrepSession, getAssessmentSession, saveAssessmentSession } from '@/lib/session'
 import { nanoid } from 'nanoid'
 
-const ADK_BASE = process.env.NEXT_PUBLIC_ADK_URL ?? 'http://localhost:8000'
+const ADK_BASE = process.env.NEXT_PUBLIC_ADK_URL || 'https://the-next-interview-agents-379802788252.us-central1.run.app'
 const APP = 'answer_evaluator'
 
 interface Props {
@@ -184,9 +184,10 @@ Return JSON: { "evaluations": [...] }`
           value={answers[q.id] ?? ''}
           onChange={e => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
           placeholder="Type your answer here... Be thorough — explain your reasoning, mention trade-offs, and use specific examples from your experience."
-          rows={8}
+          rows={6}
           className="w-full rounded-xl px-4 py-3 text-sm resize-y outline-none transition-colors"
           style={{
+            minHeight: '140px',
             background: 'var(--bg-base)',
             border: '1px solid var(--border)',
             color: 'var(--text-primary)',

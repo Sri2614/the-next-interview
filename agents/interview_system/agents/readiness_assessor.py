@@ -59,7 +59,7 @@ Each item:
 
 **estimatedPrepTime**: e.g., "1-2 weeks", "3-4 weeks"
 
-Return as JSON. Store in session state as 'readiness_report'.
+Return ONLY a valid JSON object. Do not call any other tools — just return the JSON.
 """,
     tools=[load_vacancy],
     output_key="readiness_report",

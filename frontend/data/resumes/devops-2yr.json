@@ -1,0 +1,30 @@
+{
+  "id": "devops-2yr",
+  "name": "Marcus Lee",
+  "role": "DevOps Engineer",
+  "yearsExperience": 2,
+  "summary": "Junior DevOps engineer with 2 years automating infrastructure and CI/CD pipelines. Passionate about platform engineering and developer productivity. Solid Linux background and growing Kubernetes experience.",
+  "skills": {
+    "languages": ["Bash", "Python", "YAML", "HCL"],
+    "frameworks": ["Ansible", "Terraform", "Helm"],
+    "tools": ["Docker", "Kubernetes", "Jenkins", "GitHub Actions", "Prometheus", "Grafana", "Git"],
+    "cloud": ["AWS EC2", "AWS EKS", "AWS VPC", "AWS IAM"],
+    "concepts": ["CI/CD", "Infrastructure as Code", "Container Orchestration", "Monitoring", "GitOps"]
+  },
+  "experience": [
+    {
+      "company": "CloudBase Solutions",
+      "title": "DevOps Engineer",
+      "duration": "Jan 2022 – Present",
+      "bullets": [
+        "Automated deployment pipelines reducing release time from 4 hours to 20 minutes",
+        "Migrated 12 services from bare-metal to Kubernetes cluster on AWS EKS",
+        "Set up monitoring stack (Prometheus + Grafana) with alerting for 99.9% uptime SLA"
+      ]
+    }
+  ],
+  "education": [
+    { "degree": "BSc Information Technology", "institution": "Sheffield Hallam University", "year": 2022 }
+  ],
+  "certifications": ["AWS Solutions Architect – Associate (2023)", "CKA Certified Kubernetes Administrator (2023)"]
+}

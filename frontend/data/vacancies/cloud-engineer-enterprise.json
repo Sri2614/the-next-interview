@@ -1,0 +1,24 @@
+{
+  "id": "cloud-engineer-enterprise",
+  "title": "Senior Cloud Engineer",
+  "company": "NovaCorp Global",
+  "industry": "enterprise / consulting",
+  "location": "Manchester, UK (Hybrid 2d)",
+  "salaryRange": "£75,000 – £95,000",
+  "type": "full-time",
+  "description": "NovaCorp is a FTSE 250 company undergoing a major cloud transformation. We need a Senior Cloud Engineer to join our Platform team and lead the migration of on-premise workloads to AWS and GCP. You'll define standards and patterns used by 500+ engineers across the organisation.",
+  "requirements": {
+    "mustHave": ["AWS or GCP", "Terraform", "Kubernetes", "CI/CD pipelines", "Infrastructure as Code", "Linux", "Networking fundamentals"],
+    "niceToHave": ["Multi-cloud", "FinOps", "Security compliance (SOC2/ISO27001)", "ArgoCD", "Service mesh (Istio)"],
+    "yearsExperience": 6
+  },
+  "techStack": ["AWS", "GCP", "Terraform", "Kubernetes", "Helm", "ArgoCD", "Datadog", "GitHub Actions", "Docker"],
+  "responsibilities": [
+    "Lead cloud architecture for 3 major migration workstreams",
+    "Define IaC standards and golden path templates for 10 product teams",
+    "Implement security controls and compliance guardrails",
+    "Mentor 4 junior cloud engineers"
+  ],
+  "interviewProcess": ["30min recruiter screen", "60min technical interview", "90min architecture case study", "45min stakeholder interview"],
+  "postedDate": "2026-03-03"
+}

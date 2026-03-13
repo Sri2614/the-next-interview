@@ -1,0 +1,24 @@
+{
+  "id": "devops-lead-saas",
+  "title": "DevOps Lead",
+  "company": "CloudMesh SaaS",
+  "industry": "SaaS / B2B software",
+  "location": "Edinburgh, UK (Hybrid)",
+  "salaryRange": "£80,000 – £100,000",
+  "type": "full-time",
+  "description": "CloudMesh is a B2B SaaS company serving 1,500 enterprise clients. Our DevOps Lead will own the entire platform engineering function, defining the roadmap for infrastructure, security, and developer experience. You'll manage 2 engineers and report directly to the CTO.",
+  "requirements": {
+    "mustHave": ["Kubernetes", "Terraform", "CI/CD (GitHub Actions or similar)", "AWS or GCP", "Monitoring and observability", "Security practices", "Team leadership"],
+    "niceToHave": ["Platform engineering", "Service mesh", "FinOps", "SOC2 compliance", "Developer portal (Backstage)"],
+    "yearsExperience": 5
+  },
+  "techStack": ["Kubernetes", "Terraform", "AWS", "GitHub Actions", "Datadog", "PagerDuty", "Vault", "Helm", "ArgoCD"],
+  "responsibilities": [
+    "Own end-to-end platform reliability for 99.9% uptime SLA",
+    "Lead and grow a team of 2 platform engineers",
+    "Drive SOC2 Type II compliance programme",
+    "Build developer golden path reducing new service setup from weeks to hours"
+  ],
+  "interviewProcess": ["45min intro call", "90min technical + leadership interview", "Case study presentation", "Meet the team"],
+  "postedDate": "2026-02-25"
+}

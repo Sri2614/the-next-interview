@@ -53,7 +53,7 @@ Return a JSON object with these fields:
 - **followUps**: 3 follow-up questions to extend the challenge (for senior discussions)
 - **relatedConcepts**: 3-5 concepts this challenge tests
 
-Store in session state as 'code_challenge'.
+Do not call any other tools — just return the JSON.
 """,
     tools=[load_vacancy],
     output_key="code_challenge",

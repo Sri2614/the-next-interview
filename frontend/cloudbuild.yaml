@@ -1,17 +1,27 @@
 steps:
-  - name: 'gcr.io/cloud-builders/docker'
+  # Step 1: Dynamically fetch the agents Cloud Run URL — no hardcoding needed
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
     args:
-      - build
-      - --build-arg
-      - NEXT_PUBLIC_ADK_URL=${_ADK_URL}
-      - -f
-      - Dockerfile.frontend
-      - -t
-      - us-central1-docker.pkg.dev/thesimplifiedtech/the-next-interview/frontend:latest
-      - .
+      - '-c'
+      - |
+        AGENTS_URL=$(gcloud run services describe the-next-interview-agents \
+          --region us-central1 \
+          --format='value(status.url)')
+        echo "Agents URL: $$AGENTS_URL"
+        echo "$$AGENTS_URL" > /workspace/agents_url.txt
+
+  # Step 2: Build the Next.js image — NEXT_PUBLIC_ADK_URL baked in at build time
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        AGENTS_URL=$(cat /workspace/agents_url.txt)
+        docker build \
+          --build-arg NEXT_PUBLIC_ADK_URL=$$AGENTS_URL \
+          -t us-central1-docker.pkg.dev/thesimplifiedtech/the-next-interview/frontend:latest \
+          .
 
 images:
   - us-central1-docker.pkg.dev/thesimplifiedtech/the-next-interview/frontend:latest
-
-substitutions:
-  _ADK_URL: https://placeholder

@@ -29,9 +29,10 @@ const RECOMMENDATION_STYLE = {
 interface Props {
   resume: MockResume
   vacancies: Vacancy[]
+  autoStart?: boolean
 }
 
-export default function MatchClient({ resume, vacancies }: Props) {
+export default function MatchClient({ resume, vacancies, autoStart = false }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [progressStep, setProgressStep] = useState(0)
@@ -39,6 +40,16 @@ export default function MatchClient({ resume, vacancies }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'strong' | 'good' | 'stretch'>('all')
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null)
+  const autoStarted = useRef(false)
+
+  // Auto-start matching when navigating from resume upload
+  useEffect(() => {
+    if (autoStart && !autoStarted.current && !matchResults) {
+      autoStarted.current = true
+      runMatching()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart])
 
   // Cycle through progress messages while loading
   useEffect(() => {
@@ -67,7 +78,7 @@ export default function MatchClient({ resume, vacancies }: Props) {
     try {
       const userId = 'user-1'
       const sessionId = `match-${resume.id}-${Date.now()}`
-      const ADK_URL = process.env.NEXT_PUBLIC_ADK_URL ?? 'http://localhost:8000'
+      const ADK_URL = process.env.NEXT_PUBLIC_ADK_URL || 'https://the-next-interview-agents-379802788252.us-central1.run.app'
       const APP = 'vacancy_matcher'
 
       // Create session
@@ -265,27 +276,25 @@ export default function MatchClient({ resume, vacancies }: Props) {
   return (
     <div className="space-y-5">
       {/* Filter tabs */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {(['all', 'strong', 'good', 'stretch'] as const).map(f => (
-          <button
-            key={f}
-            onClick={() => setSelectedFilter(f)}
-            className="px-4 py-1.5 rounded-full text-sm font-medium transition-colors"
-            style={selectedFilter === f
-              ? { background: 'var(--accent)', color: 'white' }
-              : { background: 'var(--bg-card)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }
-            }
-          >
-            {f === 'all' ? `All (${matchResults.length})` : (
-              <>
-                {RECOMMENDATION_STYLE[f].label} ({matchResults.filter(r => r.recommendation === f).length})
-              </>
-            )}
-          </button>
-        ))}
-        <span className="ml-auto text-sm" style={{ color: 'var(--text-muted)' }}>
-          Sorted by match score
-        </span>
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {(['all', 'strong', 'good', 'stretch'] as const).map(f => (
+            <button
+              key={f}
+              onClick={() => setSelectedFilter(f)}
+              className="px-3 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors whitespace-nowrap"
+              style={selectedFilter === f
+                ? { background: 'var(--accent)', color: 'white' }
+                : { background: 'var(--bg-card)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }
+              }
+            >
+              {f === 'all' ? `All (${matchResults.length})` : (
+                <>{RECOMMENDATION_STYLE[f].label} ({matchResults.filter(r => r.recommendation === f).length})</>
+              )}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Sorted by match score ↓</p>
       </div>
 
       {/* Vacancy cards */}

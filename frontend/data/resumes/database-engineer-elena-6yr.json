@@ -1,0 +1,76 @@
+{
+  "id": "database-engineer-elena-6yr",
+  "name": "Elena Kowalski",
+  "role": "Senior Database Engineer - SQL Server Specialist",
+  "yearsExperience": 9,
+  "summary": "Database Engineer with 9+ years of experience specializing in Microsoft SQL Server administration, performance optimization, and high availability solutions. Expert in designing enterprise-grade database architectures, implementing Always On Availability Groups, and optimizing complex queries. Strong background in automation, disaster recovery planning, and ensuring data security compliance.",
+  "skills": {
+    "languages": ["T-SQL", "PowerShell", "SQL", "Python"],
+    "frameworks": ["dbatools", "Flyway", "DbUp", "SSIS"],
+    "tools": ["SQL Server 2016", "SQL Server 2019", "SQL Server 2022", "SSMS", "Azure Data Studio", "SQL Server Agent", "SolarWinds DPA", "Redgate SQL Monitor", "SentryOne", "Azure Monitor", "Azure DevOps", "Git", "SQL Profiler", "Extended Events", "SSRS", "SSAS", "Power BI"],
+    "cloud": ["Azure SQL Database", "Azure SQL Managed Instance", "Azure Blob Storage", "Azure Monitor", "AWS RDS"],
+    "concepts": ["Always On Availability Groups", "Failover Clustering", "Log Shipping", "Replication", "Query Store", "Execution Plans", "DMVs", "TDE", "Always Encrypted", "Row-Level Security", "Dynamic Data Masking", "Change Data Capture", "OLTP Optimization", "Columnstore Indexes", "Disaster Recovery", "High Availability", "GDPR Compliance", "CI/CD for Databases"]
+  },
+  "experience": [
+    {
+      "company": "Enterprise Data Solutions",
+      "title": "Senior Database Engineer",
+      "duration": "Mar 2021 – Present",
+      "bullets": [
+        "Manage 150+ SQL Server instances across production, staging, and development environments",
+        "Architected Always On Availability Group deployment achieving 99.99% database uptime",
+        "Optimized critical stored procedures reducing execution time from 45 seconds to 2 seconds",
+        "Implemented comprehensive backup strategy with point-in-time recovery and geo-redundant storage",
+        "Led migration of 50+ databases to Azure SQL Managed Instance, reducing infrastructure costs by 40%",
+        "Designed and implemented CDC (Change Data Capture) solution for real-time data synchronization",
+        "Established database security standards including TDE encryption and row-level security policies",
+        "Automated routine DBA tasks using PowerShell and dbatools, saving 20+ hours per week",
+        "Mentored 2 junior DBAs and created comprehensive documentation and runbooks"
+      ]
+    },
+    {
+      "company": "Financial Services Group",
+      "title": "Database Administrator",
+      "duration": "Jul 2018 – Feb 2021",
+      "bullets": [
+        "Administered mission-critical SQL Server databases supporting €100M+ daily transactions",
+        "Implemented Query Store and automatic tuning, reducing query regressions by 75%",
+        "Designed disaster recovery solution with RPO < 5 minutes and RTO < 30 minutes",
+        "Built SSIS packages processing 10M+ records daily for data warehouse ETL",
+        "Performed database migrations from SQL Server 2014 to 2019 with zero downtime",
+        "Created performance baselines and capacity planning reports for infrastructure decisions",
+        "Implemented database audit logging for GDPR and financial compliance requirements"
+      ]
+    },
+    {
+      "company": "Tech Consulting BV",
+      "title": "Junior Database Administrator",
+      "duration": "Sep 2016 – Jun 2018",
+      "bullets": [
+        "Supported 50+ SQL Server databases across multiple client environments",
+        "Performed daily health checks, backup verification, and index maintenance",
+        "Developed T-SQL scripts for automated monitoring and alerting",
+        "Assisted in troubleshooting performance issues using execution plan analysis",
+        "Created documentation for database procedures and disaster recovery processes"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "degree": "MSc Data Management",
+      "institution": "Erasmus University Rotterdam",
+      "year": 2016
+    },
+    {
+      "degree": "BSc Computer Science",
+      "institution": "The Hague University of Applied Sciences",
+      "year": 2014
+    }
+  ],
+  "certifications": [
+    "Microsoft Certified: Azure Database Administrator Associate (2023)",
+    "Microsoft Certified: SQL Server Database Administration (2021)",
+    "MCSE: Data Management and Analytics (2019)",
+    "ITIL Foundation Certificate (2018)"
+  ]
+}
