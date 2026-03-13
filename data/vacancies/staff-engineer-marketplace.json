@@ -1,0 +1,24 @@
+{
+  "id": "staff-engineer-marketplace",
+  "title": "Staff Software Engineer",
+  "company": "MarketX",
+  "industry": "marketplace / e-commerce",
+  "location": "London, UK (Hybrid 2d)",
+  "salaryRange": "£120,000 – £145,000",
+  "type": "full-time",
+  "description": "MarketX is Europe's largest B2B marketplace with £8B GMV. As a Staff Engineer, you'll work across our 80-engineer platform org, identifying and solving the hardest technical problems that span multiple teams. You'll combine deep technical execution with broad influence — writing code, reviewing architecture, and mentoring senior engineers.",
+  "requirements": {
+    "mustHave": ["Distributed systems design", "System design at scale", "Polyglot backend (Java, Go, or Python)", "Technical leadership", "Cross-team influence", "Mentoring seniors"],
+    "niceToHave": ["Search systems (Elasticsearch)", "Event-driven architecture", "Multi-region deployment", "FinOps"],
+    "yearsExperience": 8
+  },
+  "techStack": ["Java", "Go", "Python", "Kafka", "Elasticsearch", "PostgreSQL", "Redis", "Kubernetes", "AWS", "Datadog"],
+  "responsibilities": [
+    "Identify and resolve cross-cutting technical problems affecting 80+ engineers",
+    "Author RFCs and drive architectural alignment across 6 product teams",
+    "Contribute high-impact production code (30-40% of time)",
+    "Grow 3-4 senior engineers toward staff-level impact"
+  ],
+  "interviewProcess": ["60min recruiter + team overview", "Coding interview (senior-level)", "System design (complex marketplace problem)", "Leadership & influence round", "Executive chat"],
+  "postedDate": "2026-02-22"
+}

@@ -1,0 +1,24 @@
+{
+  "id": "backend-python-healthtech",
+  "title": "Backend Python Engineer",
+  "company": "HealthBridge",
+  "industry": "healthtech",
+  "location": "London, UK (Fully Remote)",
+  "salaryRange": "£55,000 – £70,000",
+  "type": "full-time",
+  "description": "HealthBridge connects patients with healthcare providers through a unified API platform. We process sensitive health data at scale and take data quality and security seriously. We're looking for a Python engineer who cares about clean code, testing, and building APIs that clinical teams can depend on.",
+  "requirements": {
+    "mustHave": ["Python 3.10+", "FastAPI or Django REST Framework", "PostgreSQL", "REST API design", "Testing (pytest)", "Docker"],
+    "niceToHave": ["NHS API integrations", "FHIR standard", "Celery", "Redis", "AWS", "HIPAA/GDPR compliance"],
+    "yearsExperience": 3
+  },
+  "techStack": ["Python 3.11", "FastAPI", "PostgreSQL", "Redis", "Celery", "Docker", "AWS ECS", "pytest", "SQLAlchemy"],
+  "responsibilities": [
+    "Build and maintain health data APIs used by 200+ NHS practices",
+    "Ensure GDPR and clinical data security standards are met",
+    "Write comprehensive test suites for critical patient data flows",
+    "Collaborate with clinical advisors to model health domain concepts"
+  ],
+  "interviewProcess": ["45min intro call", "Technical screening (coding exercise)", "60min system design", "30min values interview"],
+  "postedDate": "2026-03-02"
+}

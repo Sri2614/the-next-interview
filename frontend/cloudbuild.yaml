@@ -1,0 +1,17 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - build
+      - --build-arg
+      - NEXT_PUBLIC_ADK_URL=${_ADK_URL}
+      - -f
+      - Dockerfile.frontend
+      - -t
+      - us-central1-docker.pkg.dev/thesimplifiedtech/the-next-interview/frontend:latest
+      - .
+
+images:
+  - us-central1-docker.pkg.dev/thesimplifiedtech/the-next-interview/frontend:latest
+
+substitutions:
+  _ADK_URL: https://placeholder

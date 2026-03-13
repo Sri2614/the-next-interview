@@ -1,0 +1,24 @@
+{
+  "id": "ml-engineer-startup",
+  "title": "ML Engineer",
+  "company": "Neuron Labs",
+  "industry": "AI/startup",
+  "location": "London, UK (Remote-first)",
+  "salaryRange": "£65,000 – £85,000 + equity",
+  "type": "full-time",
+  "description": "Neuron Labs is an AI-first startup building the next generation of intelligent document processing. We need an ML Engineer to own the full lifecycle of our NLP models — from data collection and training through to production serving. You'll work directly with the founders and have massive impact on product direction.",
+  "requirements": {
+    "mustHave": ["Python", "PyTorch or TensorFlow", "NLP / Transformers", "Model deployment", "MLOps", "REST API design"],
+    "niceToHave": ["HuggingFace", "LLM fine-tuning", "GCP Vertex AI", "Kubernetes", "FastAPI"],
+    "yearsExperience": 3
+  },
+  "techStack": ["Python 3.11", "PyTorch", "HuggingFace Transformers", "FastAPI", "GCP Vertex AI", "Docker", "Kubernetes", "MLflow"],
+  "responsibilities": [
+    "Train and fine-tune NLP models for document understanding tasks",
+    "Build and maintain MLOps pipeline for automated retraining and deployment",
+    "Optimize model inference latency for production (<100ms p99)",
+    "Work with product team to define ML-driven features"
+  ],
+  "interviewProcess": ["45min intro call", "ML take-home project (3 days)", "90min technical deep dive", "30min founder chat"],
+  "postedDate": "2026-02-28"
+}

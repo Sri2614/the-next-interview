@@ -1,0 +1,57 @@
+{
+  "id": "database-engineer-mssql",
+  "title": "Database Engineer - Microsoft SQL Server",
+  "company": "DataCore Solutions BV",
+  "industry": "enterprise",
+  "location": "Rotterdam, Netherlands (Hybrid)",
+  "salaryRange": "€60,000 – €85,000",
+  "type": "full-time",
+  "description": "We are seeking an experienced Database Engineer specializing in Microsoft SQL Server to join our Data Platform team. You will be responsible for designing, implementing, and maintaining our SQL Server infrastructure, ensuring optimal performance, high availability, and data integrity across all database systems.",
+  "requirements": {
+    "mustHave": [
+      "4+ years SQL Server Database Administrator or Engineer",
+      "Expert-level T-SQL and query optimization",
+      "SQL Server 2016+ (preferably 2019 or 2022)",
+      "Database design principles and normalization",
+      "Always On Availability Groups",
+      "Execution plans, DMVs, and Query Store",
+      "Backup strategies, DBCC, and disaster recovery",
+      "TDE, Always Encrypted, and Row-Level Security",
+      "PowerShell scripting for automation",
+      "Windows Server administration"
+    ],
+    "niceToHave": [
+      "Microsoft certifications (Azure Database Administrator, SQL Server)",
+      "SSIS and SSRS",
+      "Azure SQL Database and Azure SQL Managed Instance",
+      "Database migration experience",
+      "Change Data Capture (CDC) and replication",
+      "Data warehousing and columnstore indexes",
+      "DevOps and CI/CD for database deployments",
+      "SolarWinds, Redgate, or SentryOne monitoring tools",
+      "GDPR and data compliance requirements"
+    ],
+    "yearsExperience": 4
+  },
+  "techStack": ["SQL Server 2019", "SQL Server 2022", "Always On Availability Groups", "SSMS", "Azure Data Studio", "PowerShell", "T-SQL", "SSIS", "SSRS", "SSAS", "Azure SQL Database", "Azure SQL Managed Instance", "Redgate SQL Toolbelt", "Windows Server 2019", "Windows Server 2022"],
+  "responsibilities": [
+    "Design, implement, and maintain SQL Server databases across development, staging, and production environments",
+    "Optimize database performance through query tuning, indexing strategies, and execution plan analysis",
+    "Implement and manage high availability solutions (Always On, Failover Clustering, Log Shipping)",
+    "Develop and maintain backup and disaster recovery strategies",
+    "Create and optimize stored procedures, functions, views, and triggers",
+    "Monitor database health, performance metrics, and capacity planning",
+    "Implement security best practices including encryption, auditing, and access controls",
+    "Collaborate with development teams on database design and data modeling",
+    "Automate routine database administration tasks using PowerShell and T-SQL",
+    "Troubleshoot and resolve complex database issues in production environments"
+  ],
+  "interviewProcess": [
+    "30min initial screening call",
+    "SQL skills technical assessment",
+    "60min technical interview with database team",
+    "45min hands-on troubleshooting scenario",
+    "30min culture fit conversation with hiring manager"
+  ],
+  "postedDate": "2026-03-05"
+}

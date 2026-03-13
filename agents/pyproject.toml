@@ -1,0 +1,17 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "the-next-interview-agents"
+version = "0.1.0"
+description = "Multi-agent interview prep backend using Google ADK"
+requires-python = ">=3.11"
+dependencies = [
+    "google-adk>=1.0.0",
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["interview_system", "tools"]

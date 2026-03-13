@@ -1,0 +1,70 @@
+{
+  "id": "kubernetes-engineer-marcus-5yr",
+  "name": "Marcus van der Berg",
+  "role": "Senior Kubernetes Engineer",
+  "yearsExperience": 8,
+  "summary": "Platform Engineer with 8+ years of experience designing and managing production Kubernetes clusters at scale. Expertise in container orchestration, GitOps workflows, and cloud-native infrastructure. Proven track record of improving system reliability, reducing deployment times, and implementing security best practices. Strong advocate for automation and Infrastructure as Code.",
+  "skills": {
+    "languages": ["Go", "Python", "Bash", "SQL"],
+    "frameworks": ["Helm", "Kustomize", "ArgoCD", "Flux"],
+    "tools": ["Kubernetes", "Docker", "containerd", "Podman", "Terraform", "Pulumi", "CloudFormation", "GitHub Actions", "GitLab CI", "Prometheus", "Grafana", "Loki", "Jaeger", "Datadog", "ELK Stack", "Vault", "External Secrets Operator", "OPA/Gatekeeper", "Trivy", "Falco", "Istio", "Linkerd", "Envoy", "Calico", "Cilium", "Nginx Ingress", "Cert-Manager", "CoreDNS", "Karpenter"],
+    "cloud": ["AWS EKS", "Azure AKS", "GCP GKE", "AWS", "Azure", "GCP"],
+    "concepts": ["GitOps", "Service Mesh", "mTLS", "Multi-cluster Federation", "Infrastructure as Code", "Pod Security Standards", "RBAC", "Network Policies", "Canary Deployments", "Kubernetes Operators", "CRDs", "Cost Optimization", "Spot Instances"]
+  },
+  "experience": [
+    {
+      "company": "CloudScale Technologies",
+      "title": "Senior Kubernetes Engineer",
+      "duration": "Feb 2022 – Present",
+      "bullets": [
+        "Architected and managed 15+ production Kubernetes clusters across AWS EKS and Azure AKS serving 500+ microservices",
+        "Implemented GitOps workflow using ArgoCD, reducing deployment time from 45 minutes to 5 minutes",
+        "Designed multi-cluster federation strategy enabling seamless workload distribution across regions",
+        "Built comprehensive observability platform with Prometheus, Grafana, and Loki, achieving 99.95% uptime SLA",
+        "Implemented Istio service mesh for traffic management, mTLS, and canary deployments",
+        "Reduced cloud infrastructure costs by 35% through right-sizing, spot instances, and Karpenter autoscaling",
+        "Led security hardening initiative implementing OPA policies, Pod Security Standards, and network policies",
+        "Mentored 4 junior engineers and conducted weekly knowledge-sharing sessions"
+      ]
+    },
+    {
+      "company": "FinTech Solutions",
+      "title": "Platform Engineer",
+      "duration": "Jun 2019 – Jan 2022",
+      "bullets": [
+        "Migrated legacy VM-based infrastructure to Kubernetes, reducing operational overhead by 50%",
+        "Developed Helm charts and Kustomize overlays for 80+ application deployments",
+        "Implemented Vault integration for secrets management across all clusters",
+        "Created custom Kubernetes operators using Go for automated database provisioning",
+        "Built CI/CD pipelines with GitHub Actions deploying 200+ releases per week",
+        "Established disaster recovery procedures with cross-region backup and restore capabilities"
+      ]
+    },
+    {
+      "company": "Digital Agency BV",
+      "title": "DevOps Engineer",
+      "duration": "Aug 2017 – May 2019",
+      "bullets": [
+        "Containerized 30+ applications using Docker, establishing container best practices",
+        "Managed initial Kubernetes adoption using GKE for client projects",
+        "Implemented monitoring solutions using Prometheus and Grafana",
+        "Automated infrastructure provisioning with Terraform across multiple cloud providers",
+        "Reduced deployment failures by 60% through improved CI/CD pipeline design"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "degree": "BSc Information Technology",
+      "institution": "Rotterdam University of Applied Sciences",
+      "year": 2017
+    }
+  ],
+  "certifications": [
+    "Certified Kubernetes Administrator (CKA) – 2023",
+    "Certified Kubernetes Application Developer (CKAD) – 2022",
+    "Certified Kubernetes Security Specialist (CKS) – 2023",
+    "AWS Certified Solutions Architect – Associate – 2021",
+    "HashiCorp Certified: Terraform Associate – 2022"
+  ]
+}

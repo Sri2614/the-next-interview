@@ -1,0 +1,2 @@
+from interview_system.agents.answer_evaluator import answer_evaluator_agent
+root_agent = answer_evaluator_agent

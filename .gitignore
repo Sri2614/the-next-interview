@@ -1,0 +1,43 @@
+# ── Environment & secrets ────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+agents/.env
+
+# ── Python ───────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.Python
+*.egg-info/
+dist/
+build/
+
+# ── Next.js / Node ───────────────────────────────────────────────────
+node_modules/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+*.tsbuildinfo
+.npm
+
+# ── Claude Code local session data ──────────────────────────────────
+.claude/
+
+# ── ADK local session databases ──────────────────────────────────────
+.adk/
+*.db
+*.db-shm
+*.db-wal
+
+# ── macOS ────────────────────────────────────────────────────────────
+.DS_Store
+*.DS_Store
+
+# ── Editors ──────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo

@@ -1,0 +1,2 @@
+from interview_system.agents.readiness_assessor import readiness_assessor_agent
+root_agent = readiness_assessor_agent

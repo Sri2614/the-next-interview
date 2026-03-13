@@ -1,0 +1,24 @@
+{
+  "id": "golang-backend-fintech",
+  "title": "Backend Engineer (Go)",
+  "company": "Stripe-UK",
+  "industry": "fintech / payments",
+  "location": "London, UK (Hybrid)",
+  "salaryRange": "£80,000 – £110,000",
+  "type": "full-time",
+  "description": "Stripe-UK is building the UK's next-generation open banking platform. We use Go for its performance and simplicity in building financial APIs that need to be bulletproof. You'll join a small team of 6 engineers and own entire service slices from design to production.",
+  "requirements": {
+    "mustHave": ["Go (Golang)", "REST API design", "PostgreSQL", "gRPC", "Docker", "Concurrency patterns", "Microservices"],
+    "niceToHave": ["Kafka", "Kubernetes", "Open Banking / PSD2", "Protocol Buffers", "Redis"],
+    "yearsExperience": 4
+  },
+  "techStack": ["Go 1.22", "gRPC", "Protocol Buffers", "PostgreSQL", "Redis", "Kafka", "Docker", "Kubernetes", "OpenTelemetry"],
+  "responsibilities": [
+    "Build high-performance payment APIs processing 100k TPS",
+    "Design gRPC service contracts and versioning strategies",
+    "Implement distributed tracing and observability instrumentation",
+    "Contribute to architectural decisions in a small, high-ownership team"
+  ],
+  "interviewProcess": ["45min intro", "Go coding challenge (LeetCode-style)", "System design: distributed payments", "Cultural values chat"],
+  "postedDate": "2026-03-03"
+}

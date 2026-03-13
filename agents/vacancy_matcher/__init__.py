@@ -1,0 +1,2 @@
+from interview_system.agents.vacancy_matcher import vacancy_matcher_agent
+root_agent = vacancy_matcher_agent

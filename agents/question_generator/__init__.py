@@ -1,0 +1,2 @@
+from interview_system.agents.question_generator import question_generator_agent
+root_agent = question_generator_agent

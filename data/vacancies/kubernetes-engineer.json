@@ -1,0 +1,55 @@
+{
+  "id": "kubernetes-engineer",
+  "title": "Kubernetes Engineer",
+  "company": "ScalePlatform BV",
+  "industry": "cloud",
+  "location": "Amsterdam, Netherlands (Hybrid)",
+  "salaryRange": "€70,000 – €95,000",
+  "type": "full-time",
+  "description": "We are looking for a Kubernetes Engineer to join our Platform Engineering team. You will be responsible for designing, deploying, and maintaining our container orchestration infrastructure. This role is critical to ensuring our applications run reliably and efficiently at scale across multiple environments.",
+  "requirements": {
+    "mustHave": [
+      "3+ years Kubernetes in production environments",
+      "Docker and containerd",
+      "AWS EKS, Azure AKS, or GCP GKE",
+      "Terraform, Pulumi, or CloudFormation",
+      "Helm charts and Kubernetes manifest management",
+      "Networking concepts (DNS, load balancing, CNI plugins)",
+      "Prometheus, Grafana, or ELK Stack",
+      "Bash, Python, or Go scripting",
+      "Security best practices and RBAC"
+    ],
+    "niceToHave": [
+      "CKA or CKAD certification",
+      "ArgoCD or Flux (GitOps)",
+      "Istio or Linkerd service mesh",
+      "Multi-cluster management and federation",
+      "Kubernetes operators and CRDs",
+      "Vault or External Secrets Operator",
+      "Cost optimization strategies",
+      "Chaos engineering practices"
+    ],
+    "yearsExperience": 3
+  },
+  "techStack": ["Kubernetes", "EKS", "AKS", "GKE", "Docker", "containerd", "Terraform", "Helm", "Kustomize", "ArgoCD", "GitHub Actions", "Prometheus", "Grafana", "Loki", "Istio", "Cert-Manager", "Vault", "External Secrets Operator", "AWS", "Azure", "GCP"],
+  "responsibilities": [
+    "Design, deploy, and manage production-grade Kubernetes clusters",
+    "Implement and maintain CI/CD pipelines for containerized applications",
+    "Develop and enforce best practices for container security and compliance",
+    "Monitor cluster health, performance, and capacity planning",
+    "Create and maintain Infrastructure as Code using Terraform, Helm, and Kustomize",
+    "Troubleshoot complex issues across networking, storage, and compute layers",
+    "Collaborate with development teams to optimize application deployments",
+    "Implement service mesh solutions and manage ingress/egress traffic",
+    "Automate operational tasks and improve platform reliability",
+    "Document architecture, runbooks, and operational procedures"
+  ],
+  "interviewProcess": [
+    "30min initial screening call",
+    "Technical assessment - infrastructure scenario exercise",
+    "90min technical deep-dive with platform team",
+    "60min architecture and troubleshooting session",
+    "30min culture fit conversation with engineering leadership"
+  ],
+  "postedDate": "2026-03-08"
+}

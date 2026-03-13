@@ -1,0 +1,69 @@
+{
+  "id": "java-dev-sarah-5yr",
+  "name": "Sarah Chen",
+  "role": "Senior Java Developer",
+  "yearsExperience": 9,
+  "summary": "Results-driven Java Developer with 9 years of experience building scalable, high-performance applications using Spring Boot and microservices architecture. Strong background in designing RESTful APIs, optimizing database interactions, and implementing CI/CD pipelines. Passionate about clean code, test-driven development, and mentoring junior developers.",
+  "skills": {
+    "languages": ["Java 17", "SQL", "Python", "JavaScript"],
+    "frameworks": ["Spring Boot 3.x", "Spring MVC", "Spring Data JPA", "Spring Security", "Hibernate", "JUnit 5", "Mockito", "TestContainers"],
+    "tools": ["Docker", "Kubernetes", "Jenkins", "GitLab CI", "GitHub Actions", "Git", "Maven", "Gradle", "IntelliJ IDEA", "SonarQube", "Jira", "Postman"],
+    "cloud": ["AWS EC2", "AWS S3", "AWS RDS", "AWS Lambda", "Azure"],
+    "concepts": ["Microservices", "REST APIs", "Event-Driven Architecture", "CI/CD", "TDD", "Agile/Scrum", "SOLID Principles", "Apache Kafka", "Redis Caching"]
+  },
+  "experience": [
+    {
+      "company": "TechFlow Solutions",
+      "title": "Senior Java Developer",
+      "duration": "Jan 2022 – Present",
+      "bullets": [
+        "Designed and developed microservices handling 50,000+ daily transactions using Spring Boot 3 and Java 17",
+        "Led migration from monolithic architecture to microservices, reducing deployment time by 70%",
+        "Implemented event-driven architecture using Kafka, improving system decoupling and scalability",
+        "Optimized PostgreSQL queries and implemented Redis caching, reducing API response times by 45%",
+        "Mentored team of 3 junior developers through code reviews and pair programming sessions",
+        "Established coding standards and introduced SonarQube for automated code quality checks"
+      ]
+    },
+    {
+      "company": "Digital Innovations BV",
+      "title": "Java Developer",
+      "duration": "Mar 2019 – Dec 2021",
+      "bullets": [
+        "Built RESTful APIs serving 100+ endpoints for e-commerce platform with 2M+ users",
+        "Developed payment integration module processing €5M+ monthly transactions",
+        "Implemented comprehensive test suites achieving 85% code coverage",
+        "Collaborated with DevOps team to containerize applications using Docker",
+        "Participated in Agile ceremonies and contributed to sprint planning and retrospectives"
+      ]
+    },
+    {
+      "company": "StartUp Hub",
+      "title": "Junior Java Developer",
+      "duration": "Jun 2017 – Feb 2019",
+      "bullets": [
+        "Developed backend features for SaaS platform using Spring MVC and Hibernate",
+        "Created automated data validation pipelines reducing manual processing by 60%",
+        "Wrote unit and integration tests using JUnit and Mockito",
+        "Participated in code reviews and improved coding practices based on feedback"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "degree": "MSc Computer Science",
+      "institution": "Delft University of Technology",
+      "year": 2017
+    },
+    {
+      "degree": "BSc Computer Science",
+      "institution": "University of Amsterdam",
+      "year": 2015
+    }
+  ],
+  "certifications": [
+    "Oracle Certified Professional: Java SE 17 Developer (2023)",
+    "Spring Professional Certification (2022)",
+    "AWS Certified Developer – Associate (2021)"
+  ]
+}

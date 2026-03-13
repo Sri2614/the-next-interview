@@ -1,0 +1,39 @@
+{
+  "id": "fullstack-react-4yr",
+  "name": "Sofia Novak",
+  "role": "Full-Stack Developer",
+  "yearsExperience": 4,
+  "summary": "Full-stack developer with 4 years building modern web applications using React and Node.js. Strong eye for UI/UX and performance. Experienced in TypeScript, REST and GraphQL APIs, and PostgreSQL databases.",
+  "skills": {
+    "languages": ["TypeScript", "JavaScript", "SQL", "HTML/CSS"],
+    "frameworks": ["React 18", "Next.js", "Node.js", "Express", "GraphQL", "Prisma", "Jest", "Cypress"],
+    "tools": ["Git", "Docker", "Webpack", "Vite", "Figma", "VS Code", "Postman"],
+    "cloud": ["AWS S3", "AWS Lambda", "Vercel", "Netlify", "PlanetScale"],
+    "concepts": ["SPA", "SSR/SSG", "REST APIs", "GraphQL", "TDD", "Accessibility", "Performance Optimization"]
+  },
+  "experience": [
+    {
+      "company": "DigitalForge Agency",
+      "title": "Full-Stack Developer",
+      "duration": "Apr 2022 – Present",
+      "bullets": [
+        "Delivered 8 client web applications from design to production using Next.js and TypeScript",
+        "Built reusable component library used across 5 projects, saving ~30% development time",
+        "Improved Lighthouse performance scores from avg 62 to 91 across portfolio"
+      ]
+    },
+    {
+      "company": "StartupHub Ltd",
+      "title": "Frontend Developer",
+      "duration": "Jun 2020 – Apr 2022",
+      "bullets": [
+        "Developed React SPA for SaaS analytics dashboard with 10k monthly active users",
+        "Integrated GraphQL API with Apollo Client, reducing API calls by 45%"
+      ]
+    }
+  ],
+  "education": [
+    { "degree": "BSc Software Engineering", "institution": "University of Edinburgh", "year": 2020 }
+  ],
+  "certifications": ["Meta Front-End Developer Certificate (2022)"]
+}

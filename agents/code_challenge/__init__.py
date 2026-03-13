@@ -1,0 +1,2 @@
+from interview_system.agents.code_challenge import code_challenge_agent
+root_agent = code_challenge_agent
