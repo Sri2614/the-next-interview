@@ -6,6 +6,49 @@
 const ADK_BASE = process.env.NEXT_PUBLIC_ADK_URL || 'https://the-next-interview-agents-379802788252.us-central1.run.app'
 const APP_NAME = 'interview_system'
 
+// ── SSE event type ────────────────────────────────────────────────────────────
+export interface ADKEvent {
+  author?: string
+  content?: { parts?: { text?: string }[] }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  actions?: { stateDelta?: Record<string, any> }
+}
+
+/**
+ * Call /run_sse and collect all streamed events into an array.
+ * Drop-in replacement for fetch('/run') + res.json() — returns same event shape
+ * but avoids gateway timeouts on long-running agents.
+ */
+export async function collectSSEEvents(url: string, body: object): Promise<ADKEvent[]> {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(`Agent error (${res.status})`)
+
+  const events: ADKEvent[] = []
+  const reader = res.body!.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split('\n')
+    buffer = lines.pop() ?? ''
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const data = line.slice(6).trim()
+        if (data === '[DONE]') continue
+        try { events.push(JSON.parse(data)) } catch { /* skip malformed SSE lines */ }
+      }
+    }
+  }
+  return events
+}
+
 export async function ensureSession(userId: string, sessionId: string): Promise<void> {
   await fetch(`${ADK_BASE}/apps/${APP_NAME}/users/${userId}/sessions/${sessionId}`, {
     method: 'POST',

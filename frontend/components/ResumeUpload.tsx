@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import type { MockResume } from '@/types/resume'
 import { saveCustomResume } from '@/lib/session'
+import { collectSSEEvents } from '@/lib/adk-client'
 
 type UploadState = 'idle' | 'reading' | 'parsing' | 'done' | 'error'
 
@@ -52,24 +53,15 @@ export default function ResumeUpload() {
       })
 
       // Send simple trigger message — agent reads PDF from session state
-      const res = await fetch(`${ADK_URL}/run`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          appName: APP,
-          userId,
-          sessionId,
-          newMessage: {
-            parts: [{ text: 'Parse the resume PDF.' }],
-            role: 'user',
-          },
-        }),
+      const events = await collectSSEEvents(`${ADK_URL}/run_sse`, {
+        appName: APP,
+        userId,
+        sessionId,
+        newMessage: {
+          parts: [{ text: 'Parse the resume PDF.' }],
+          role: 'user',
+        },
       })
-
-      if (!res.ok) throw new Error(`Agent error (${res.status})`)
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const events: any[] = await res.json()
 
       // Find the resume_parser event
       const parserEvent = [...events].reverse().find(

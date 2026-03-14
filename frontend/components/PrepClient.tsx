@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { Vacancy } from '@/types/vacancy'
 import type { GeneratedQuestion, CodeChallenge, PrepSession } from '@/types/session'
 import { getPrepSession, savePrepSession } from '@/lib/session'
+import { collectSSEEvents } from '@/lib/adk-client'
 
 const ADK_BASE = process.env.NEXT_PUBLIC_ADK_URL || 'https://the-next-interview-agents-379802788252.us-central1.run.app'
 
@@ -88,15 +89,9 @@ ${matchResult ? `Skill gaps to probe: ${matchResult.missingSkills.join(', ')}` :
 Return JSON with { "questions": [...] } where each has: id, question, difficulty, focusArea, hint, keyPoints.`
 
       setQuestionsText('Generating questions…')
-      const res = await fetch(`${ADK_BASE}/run`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ appName: 'question_generator', userId, sessionId, newMessage: { parts: [{ text: prompt }], role: 'user' } }),
+      const events = await collectSSEEvents(`${ADK_BASE}/run_sse`, {
+        appName: 'question_generator', userId, sessionId, newMessage: { parts: [{ text: prompt }], role: 'user' },
       })
-
-      if (!res.ok) throw new Error(`Agent error (${res.status})`)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const events: any[] = await res.json()
       setQuestionsText('Parsing results…')
 
       const parsed = extractJsonFromEvents(events, 'question_generator', 'questions')
@@ -146,15 +141,9 @@ Primary language: ${primaryLang ?? vacancy.techStack[0]}.
 Return complete JSON CodeChallenge with: title, description, difficulty, language, estimatedMinutes, starterCode, solution (code, steps[], timeComplexity, spaceComplexity, whyItWorks, commonMistakes[]), testCases[], followUps[], relatedConcepts[].`
 
       setChallengeText('Generating challenge…')
-      const res = await fetch(`${ADK_BASE}/run`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ appName: 'code_challenge', userId, sessionId, newMessage: { parts: [{ text: prompt }], role: 'user' } }),
+      const events = await collectSSEEvents(`${ADK_BASE}/run_sse`, {
+        appName: 'code_challenge', userId, sessionId, newMessage: { parts: [{ text: prompt }], role: 'user' },
       })
-
-      if (!res.ok) throw new Error(`Agent error (${res.status})`)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const events: any[] = await res.json()
       setChallengeText('Parsing challenge…')
 
       const parsed = extractJsonFromEvents(events, 'code_challenge', 'title')

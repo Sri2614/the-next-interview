@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { GeneratedQuestion, QuestionAnswer, AnswerEvaluation, AssessmentSession } from '@/types/session'
 import { getPrepSession, getAssessmentSession, saveAssessmentSession } from '@/lib/session'
 import { nanoid } from 'nanoid'
+import { collectSSEEvents } from '@/lib/adk-client'
 
 const ADK_BASE = process.env.NEXT_PUBLIC_ADK_URL || 'https://the-next-interview-agents-379802788252.us-central1.run.app'
 const APP = 'answer_evaluator'
@@ -78,15 +79,9 @@ Questions and answers: ${JSON.stringify(answeredQuestions)}.
 For each question return: questionId, question, userAnswer, score (0-100), verdict (excellent/good/partial/weak/missing), feedback (2-3 sentences), missedConcepts[], suggestedStudyTopics[].
 Return JSON: { "evaluations": [...] }`
 
-      const res = await fetch(`${ADK_BASE}/run`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ appName: APP, userId, sessionId: adkSessionId, newMessage: { parts: [{ text: prompt }], role: 'user' } }),
+      const events = await collectSSEEvents(`${ADK_BASE}/run_sse`, {
+        appName: APP, userId, sessionId: adkSessionId, newMessage: { parts: [{ text: prompt }], role: 'user' },
       })
-
-      if (!res.ok) throw new Error('ADK server error')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const events: any[] = await res.json()
 
       let evals: AnswerEvaluation[] = []
       const evalEvent = [...events].reverse().find((e: { author?: string }) => e.author === 'answer_evaluator')

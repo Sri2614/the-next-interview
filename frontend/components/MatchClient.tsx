@@ -6,6 +6,7 @@ import type { MockResume } from '@/types/resume'
 import type { Vacancy, MatchResult } from '@/types/vacancy'
 import type { PrepSession } from '@/types/session'
 import { savePrepSession, saveMatchCache, getMatchCache } from '@/lib/session'
+import { collectSSEEvents } from '@/lib/adk-client'
 
 const PROGRESS_STEPS = [
   'Connecting to AI agents…',
@@ -98,24 +99,15 @@ export default function MatchClient({ resume, vacancies, autoStart = false }: Pr
         experience: resume.experience,
       })
 
-      const res = await fetch(`${ADK_URL}/run`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          appName: APP,
-          userId,
-          sessionId,
-          newMessage: {
-            parts: [{ text: `Match this resume against all vacancies:\n${resumeJson}` }],
-            role: 'user',
-          },
-        }),
+      const events = await collectSSEEvents(`${ADK_URL}/run_sse`, {
+        appName: APP,
+        userId,
+        sessionId,
+        newMessage: {
+          parts: [{ text: `Match this resume against all vacancies:\n${resumeJson}` }],
+          role: 'user',
+        },
       })
-
-      if (!res.ok) throw new Error(`Agent error (${res.status}) — please try again`)
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const events: any[] = await res.json()
 
       // Find the LAST vacancy_matcher event (earlier ones are function calls with no text)
       let results: MatchResult[] = []

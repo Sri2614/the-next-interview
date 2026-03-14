@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import type { ReadinessReport, AssessmentSession, RecommendationReport } from '@/types/session'
 import { getAssessmentSession, getPrepSession, saveAssessmentSession, saveRecommendations } from '@/lib/session'
+import { collectSSEEvents } from '@/lib/adk-client'
 
 const ADK_BASE = process.env.NEXT_PUBLIC_ADK_URL || 'https://the-next-interview-agents-379802788252.us-central1.run.app'
 
@@ -260,15 +261,9 @@ ${prep?.matchResult ? `Missing skills: ${prep.matchResult.missingSkills.join(', 
 
 Generate ReadinessReport JSON with: overallScore (0-100), verdict (ready/almost_ready/needs_work/not_ready), verdictLabel, verdictExplanation, categoryScores (technical/communication/problemSolving each 0-100), strengths[], weaknesses[], studyPlan[] (each with topic/priority/reason/estimatedHours), encouragement, estimatedPrepTime.`
 
-      const res = await fetch(`${ADK_BASE}/run`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ appName: 'readiness_assessor', userId, sessionId: adkSessionId, newMessage: { parts: [{ text: prompt }], role: 'user' } }),
+      const events = await collectSSEEvents(`${ADK_BASE}/run_sse`, {
+        appName: 'readiness_assessor', userId, sessionId: adkSessionId, newMessage: { parts: [{ text: prompt }], role: 'user' },
       })
-
-      if (!res.ok) throw new Error('ADK server error')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const events: any[] = await res.json()
       const reportEvent = [...events].reverse().find((e: { author?: string }) => e.author === 'readiness_assessor')
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -325,15 +320,9 @@ ${JSON.stringify(r.studyPlan.map(item => ({ topic: item.topic, priority: item.pr
 
 For each topic, recommend 2-3 real online courses from Google Cloud Skills Boost, Coursera, Udemy, YouTube, or Official Docs.`
 
-      const res = await fetch(`${ADK_BASE}/run`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ appName: 'recommendation_agent', userId, sessionId: adkSessionId, newMessage: { parts: [{ text: prompt }], role: 'user' } }),
+      const events = await collectSSEEvents(`${ADK_BASE}/run_sse`, {
+        appName: 'recommendation_agent', userId, sessionId: adkSessionId, newMessage: { parts: [{ text: prompt }], role: 'user' },
       })
-
-      if (!res.ok) return
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const events: any[] = await res.json()
       const recEvent = [...events].reverse().find((e: { author?: string }) => e.author === 'recommendation_agent')
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
