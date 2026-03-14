@@ -104,6 +104,45 @@ A candidate uploads (or picks) a resume. The platform matches it against live jo
 
 ---
 
+## Security & Responsible AI
+
+### 🔒 Data Privacy
+
+| What | How |
+|------|-----|
+| **Resume PII** | PDF is sent to **Google Document AI** for OCR only — raw bytes never enter the LLM prompt. Only the extracted plain text is passed to Gemini. |
+| **No server-side storage** | There is no database. All session data (questions, answers, scores) lives in the user's own `localStorage` with a **7-day TTL**, then auto-deletes. |
+| **No user accounts** | The platform collects no email, name, or account information. Sessions are identified by a random UUID generated client-side. |
+| **API secrets** | Gemini API key and RapidAPI key are stored in **Google Cloud Secret Manager** and injected as environment variables at runtime — never committed to the repo or exposed to the browser. |
+| **CORS / network** | The ADK API server (Cloud Run) is a backend service — it is not directly reachable from the public internet except through the Next.js frontend. |
+
+---
+
+### 🤝 Responsible AI
+
+| Principle | Implementation |
+|-----------|----------------|
+| **Transparency** | Every score is accompanied by a human-readable explanation — match summaries, per-answer feedback, and study plan reasoning. Users always know why they received a score. |
+| **Non-decisional** | The platform is a **candidate preparation tool only**. No output is ever sent to an employer. No hiring decision is made or influenced by the platform. |
+| **Fairness** | Vacancy matching is based purely on skills and experience alignment — no demographic, location, or identity signals are used. |
+| **Human oversight** | Every AI output (questions, scores, courses) is advisory. Users can regenerate questions, retake assessments, and discard any result. |
+| **Explainability** | Answer evaluations include `verdict`, `missedConcepts`, and `suggestedStudyTopics`. Study plan items include a `reason` field explaining the prioritisation. |
+| **Retryability** | The "Retake Assessment" feature exists specifically because a single AI evaluation should not define a candidate's readiness. |
+| **Compute efficiency** | `thinking_budget=0` on all Gemini agents disables extended thinking chains — cuts per-request energy and latency from ~60–180 s → 5–20 s with no quality loss on structured JSON tasks. |
+
+---
+
+### ⚠️ Known Limitations (V1)
+
+| Limitation | Status |
+|------------|--------|
+| **Course URL accuracy** | `recommendation_agent` generates Udemy search URLs from training data — links may be outdated. A production version would validate URLs at generation time. |
+| **No bias audit** | Vacancy scoring and question generation have not been formally tested for fairness across protected characteristics (gender, ethnicity, age). Planned for V2. |
+| **No content moderation** | User-submitted answers are passed directly to `answer_evaluator`. A production version would add input filtering before LLM calls. |
+| **localStorage only** | Session data is device-local and browser-specific. Clearing browser storage loses all progress. A production version would use Firestore with auth. |
+
+---
+
 ## Agent Reference
 
 All agents live in `agents/<name>/` and are standalone `LlmAgent` instances registered with ADK.
