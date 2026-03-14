@@ -299,11 +299,11 @@ export default function HomePage() {
               className="rounded-xl px-4 py-3 text-xs space-y-1"
               style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', fontFamily: 'monospace' }}
             >
-              <div style={{ color: 'var(--text-muted)' }}>// Two Sum · JavaScript</div>
-              <div style={{ color: '#60a5fa' }}>function twoSum(nums, target) {'{'}</div>
-              <div style={{ color: 'var(--text-secondary)', paddingLeft: '1rem' }}>const map = new Map()</div>
-              <div style={{ color: 'var(--text-muted)', paddingLeft: '1rem' }}>...</div>
-              <div style={{ color: '#60a5fa' }}>{'}'}  <span style={{ color: '#34d399' }}>// O(n) · O(n)</span></div>
+              <div style={{ color: 'var(--text-muted)' }}>{'// Two Sum · JavaScript'}</div>
+              <div style={{ color: '#60a5fa' }}>{'function twoSum(nums, target) {'}</div>
+              <div style={{ color: 'var(--text-secondary)', paddingLeft: '1rem' }}>{'const map = new Map()'}</div>
+              <div style={{ color: 'var(--text-muted)', paddingLeft: '1rem' }}>{'  ...'}</div>
+              <div style={{ color: '#60a5fa' }}>{'}'}<span style={{ color: '#34d399' }}>{' // O(n) · O(n)'}</span></div>
             </div>
           </div>
         </div>
