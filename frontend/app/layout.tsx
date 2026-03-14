@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { ThemeProvider, ThemeToggle } from '@/components/ThemeProvider'
 import './globals.css'
 
