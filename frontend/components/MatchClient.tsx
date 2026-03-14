@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { MockResume } from '@/types/resume'
 import type { Vacancy, MatchResult } from '@/types/vacancy'
 import type { PrepSession } from '@/types/session'
-import { savePrepSession, saveMatchCache, getMatchCache } from '@/lib/session'
+import { savePrepSession, saveMatchCache, getMatchCache, saveLiveVacancy } from '@/lib/session'
 import { collectSSEEvents } from '@/lib/adk-client'
 
 const PROGRESS_STEPS = [
@@ -82,11 +82,15 @@ export default function MatchClient({ resume, vacancies, autoStart = false }: Pr
       const ADK_URL = process.env.NEXT_PUBLIC_ADK_URL || 'https://the-next-interview-agents-379802788252.us-central1.run.app'
       const APP = 'vacancy_matcher'
 
-      // Create session
+      // Create session — pass role so the backend fetch_live_vacancies tool
+      // can search today's live jobs for this specific role and location
       await fetch(`${ADK_URL}/apps/${APP}/users/${userId}/sessions/${sessionId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          search_role: resume.role,
+          search_location: 'remote',
+        }),
       })
 
       // Send resume JSON in the message — agent reads it directly, no session state needed
@@ -104,7 +108,7 @@ export default function MatchClient({ resume, vacancies, autoStart = false }: Pr
         userId,
         sessionId,
         newMessage: {
-          parts: [{ text: `Match this resume against all vacancies:\n${resumeJson}` }],
+          parts: [{ text: `Match this resume against today's live vacancies:\n${resumeJson}` }],
           role: 'user',
         },
       })
@@ -162,16 +166,48 @@ export default function MatchClient({ resume, vacancies, autoStart = false }: Pr
     }
   }
 
-  function handleSelectVacancy(vacancy: Vacancy, match: MatchResult) {
+  function handleSelectVacancy(match: MatchResult) {
+    // Look up local vacancy first (mock data)
+    const localVacancy = vacancies.find(v => v.id === match.vacancyId)
+
+    // Build a synthetic Vacancy from MatchResult metadata for live (real) jobs
+    const vacancy: Vacancy = localVacancy ?? {
+      id:          match.vacancyId,
+      title:       match.vacancyTitle    ?? 'Unknown Role',
+      company:     match.vacancyCompany  ?? '',
+      industry:    match.vacancyIndustry ?? 'Technology',
+      location:    match.vacancyLocation ?? '',
+      salaryRange: match.vacancySalary   ?? '',
+      type:        'FULLTIME',
+      description: match.strengthSummary ?? '',
+      requirements: {
+        mustHave:        match.missingSkills    ?? [],
+        niceToHave:      match.niceToHaveGaps   ?? [],
+        yearsExperience: match.vacancyYearsRequired ?? 0,
+      },
+      techStack:        match.vacancyTechStack ?? [],
+      responsibilities: [],
+      interviewProcess: [],
+      postedDate:       '',
+    }
+
     const session: PrepSession = {
       sessionId: `prep-${Date.now()}`,
-      resumeId: resume.id,
+      resumeId:  resume.id,
       vacancyId: vacancy.id,
       matchResult: match,
       createdAt: new Date().toISOString(),
     }
     savePrepSession(session)
-    router.push(`/prep/${vacancy.id}`)
+
+    if (localVacancy) {
+      // Mock vacancy — use the existing server-rendered prep page
+      router.push(`/prep/${vacancy.id}`)
+    } else {
+      // Live / real vacancy — save to localStorage and use the client-side prep page
+      saveLiveVacancy(vacancy)
+      router.push(`/prep/live?id=${encodeURIComponent(vacancy.id)}`)
+    }
   }
 
   const filteredResults = matchResults?.filter(r => {
@@ -240,7 +276,7 @@ export default function MatchClient({ resume, vacancies, autoStart = false }: Pr
             <div>
               <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Ready to find your matches?</h2>
               <p className="mt-2" style={{ color: 'var(--text-secondary)' }}>
-                Our AI will score {vacancies.length} vacancies against your profile.
+                Our AI fetches today&apos;s live job listings and scores them against your profile.
               </p>
               <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>
                 Takes ~30–60s · Cached for 24h after first run
@@ -257,7 +293,7 @@ export default function MatchClient({ resume, vacancies, autoStart = false }: Pr
               className="px-10 py-4 rounded-xl text-white font-semibold text-lg transition-all disabled:opacity-60"
               style={{ background: 'var(--accent)' }}
             >
-              {`Match Against ${vacancies.length} Vacancies →`}
+              {'Find Live Matches →'}
             </button>
           </div>
         )}
@@ -292,8 +328,17 @@ export default function MatchClient({ resume, vacancies, autoStart = false }: Pr
       {/* Vacancy cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {filteredResults?.map(match => {
-          const vacancy = vacancies.find(v => v.id === match.vacancyId)
-          if (!vacancy) return null
+          // Try local mock vacancy first; fall back to metadata embedded in MatchResult
+          const localVacancy  = vacancies.find(v => v.id === match.vacancyId)
+          const displayTitle  = localVacancy?.title                    ?? match.vacancyTitle    ?? 'Unknown Role'
+          const displayCompany = localVacancy?.company                 ?? match.vacancyCompany  ?? ''
+          const displayLoc    = localVacancy?.location                 ?? match.vacancyLocation ?? ''
+          const displaySalary = localVacancy?.salaryRange              ?? match.vacancySalary   ?? ''
+          const displayIndustry = localVacancy?.industry               ?? match.vacancyIndustry ?? ''
+          const displayYears  = localVacancy?.requirements.yearsExperience ?? match.vacancyYearsRequired ?? 0
+          const displayStack  = localVacancy?.techStack                ?? match.vacancyTechStack ?? []
+          const isLiveJob     = !localVacancy && !!match.vacancyTitle
+
           const style = RECOMMENDATION_STYLE[match.recommendation] ?? RECOMMENDATION_STYLE.stretch
 
           return (
@@ -305,8 +350,16 @@ export default function MatchClient({ resume, vacancies, autoStart = false }: Pr
               {/* Header */}
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{vacancy.title}</h3>
-                  <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>{vacancy.company} · {vacancy.location}</p>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{displayTitle}</h3>
+                    {isLiveJob && (
+                      <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0"
+                        style={{ background: 'rgba(52,211,153,0.10)', color: '#34d399', border: '1px solid rgba(52,211,153,0.25)' }}>
+                        Live
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>{displayCompany}{displayLoc ? ` · ${displayLoc}` : ''}</p>
                 </div>
                 <div className="text-right flex-shrink-0">
                   <div className="text-2xl font-bold" style={{ color: style.cssVar }}>{match.overallScore}%</div>
@@ -316,9 +369,9 @@ export default function MatchClient({ resume, vacancies, autoStart = false }: Pr
 
               {/* Salary + industry */}
               <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--text-muted)' }}>
-                <span>💰 {vacancy.salaryRange}</span>
-                <span>🏢 {vacancy.industry}</span>
-                <span>📅 {vacancy.requirements.yearsExperience}+ yrs required</span>
+                {displaySalary && <span>💰 {displaySalary}</span>}
+                {displayIndustry && <span>🏢 {displayIndustry}</span>}
+                <span>📅 {displayYears}+ yrs required</span>
               </div>
 
               {/* Score breakdown */}
@@ -336,23 +389,25 @@ export default function MatchClient({ resume, vacancies, autoStart = false }: Pr
               </div>
 
               {/* Tech chips */}
-              <div className="flex flex-wrap gap-1.5">
-                {vacancy.techStack.slice(0, 7).map(tech => {
-                  const isMissing = match.missingSkills.includes(tech)
-                  return (
-                    <span
-                      key={tech}
-                      className="text-xs px-2 py-0.5 rounded-full"
-                      style={isMissing
-                        ? { background: 'rgba(239,68,68,0.10)', color: 'var(--error)', border: '1px solid rgba(239,68,68,0.25)' }
-                        : { background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }
-                      }
-                    >
-                      {isMissing ? '✕ ' : '✓ '}{tech}
-                    </span>
-                  )
-                })}
-              </div>
+              {displayStack.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {displayStack.slice(0, 7).map(tech => {
+                    const isMissing = match.missingSkills.includes(tech)
+                    return (
+                      <span
+                        key={tech}
+                        className="text-xs px-2 py-0.5 rounded-full"
+                        style={isMissing
+                          ? { background: 'rgba(239,68,68,0.10)', color: 'var(--error)', border: '1px solid rgba(239,68,68,0.25)' }
+                          : { background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }
+                        }
+                      >
+                        {isMissing ? '✕ ' : '✓ '}{tech}
+                      </span>
+                    )
+                  })}
+                </div>
+              )}
 
               {/* Gap summary */}
               {match.missingSkills.length > 0 && (
@@ -361,13 +416,26 @@ export default function MatchClient({ resume, vacancies, autoStart = false }: Pr
                 </p>
               )}
 
-              <button
-                onClick={() => handleSelectVacancy(vacancy, match)}
-                className="w-full py-2.5 rounded-xl text-white text-sm font-medium transition-colors"
-                style={{ background: 'var(--accent)' }}
-              >
-                Prep for This Role →
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleSelectVacancy(match)}
+                  className="flex-1 py-2.5 rounded-xl text-white text-sm font-medium transition-colors"
+                  style={{ background: 'var(--accent)' }}
+                >
+                  Prep for This Role →
+                </button>
+                {isLiveJob && match.applyLink && (
+                  <a
+                    href={match.applyLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-2.5 rounded-xl text-xs font-medium flex items-center"
+                    style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+                  >
+                    Apply ↗
+                  </a>
+                )}
+              </div>
             </div>
           )
         })}

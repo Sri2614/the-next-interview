@@ -39,4 +39,14 @@ export interface MatchResult {
   recommendation: MatchRecommendation
   strengthSummary: string
   gapSummary: string
+  // Vacancy metadata — populated by the agent for live/real jobs
+  // so the UI can render a card without needing to look up a local JSON file.
+  vacancyTitle?: string
+  vacancyCompany?: string
+  vacancyLocation?: string
+  vacancyIndustry?: string
+  vacancySalary?: string
+  vacancyTechStack?: string[]
+  vacancyYearsRequired?: number
+  applyLink?: string
 }

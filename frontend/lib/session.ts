@@ -103,6 +103,28 @@ export function clearCustomResume(): void {
   localStorage.removeItem(CUSTOM_RESUME_KEY)
 }
 
+// ─── Live (Real-Time) Vacancy ─────────────────────────────────────────────────
+// When the vacancy_matcher returns a real job from JSearch, the job's ID won't
+// match any local JSON file. We save the synthetic Vacancy to localStorage so
+// the prep page can load it client-side.
+
+import type { Vacancy } from '@/types/vacancy'
+
+export function saveLiveVacancy(vacancy: Vacancy): void {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(`tni_live_vacancy_${vacancy.id}`, JSON.stringify(vacancy))
+}
+
+export function getLiveVacancy(id: string): Vacancy | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(`tni_live_vacancy_${id}`)
+    return raw ? (JSON.parse(raw) as Vacancy) : null
+  } catch {
+    return null
+  }
+}
+
 // ─── Recommendations ──────────────────────────────────────────────────────────
 
 export function saveRecommendations(sessionId: string, recs: RecommendationReport): void {
