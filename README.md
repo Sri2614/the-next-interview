@@ -88,50 +88,7 @@ A candidate uploads (or picks) a resume. The platform matches it against live jo
 
 ### User Journey → Agent Mapping
 
-```mermaid
-flowchart TD
-    subgraph browser["🌐 Browser · Next.js 14 · Cloud Run"]
-        s1["1️⃣  /resume\nUpload PDF or pick mock profile"]
-        s2["2️⃣  /match/resumeId\nScore vacancies · filter by fit level"]
-        s3["3️⃣  /prep/vacancyId\nQuestions tab  +  Challenge tab"]
-        s4["4️⃣  /assessment/sessionId\nAnswer 15 questions one-by-one"]
-        s5["5️⃣  /report/sessionId\nReadiness score · study plan · courses"]
-        ls[("localStorage\nPrepSession · AssessmentSession\n7-day TTL")]
-
-        s1 --> s2 --> s3 --> s4 --> s5
-        s2 & s3 & s4 & s5 <-.->|"cache / restore"| ls
-    end
-
-    subgraph adk["☁️ ADK API Server · Python · Cloud Run"]
-        ag1["resume_parser\n〈LlmAgent〉"]
-        ag2["vacancy_matcher\n〈LlmAgent〉\nloads vacancies from data/ + RapidAPI JSearch"]
-        subgraph pa["〈ParallelAgent〉  — runs both concurrently"]
-            ag3a["question_generator"]
-            ag3b["code_challenge"]
-        end
-        ag4["answer_evaluator\n〈LlmAgent〉"]
-        subgraph sa["〈SequentialAgent〉  — chained"]
-            ag5a["readiness_assessor"]
-            ag5b["recommendation_agent"]
-        end
-    end
-
-    subgraph gcp["☁️ Google Cloud / External"]
-        gem[("Gemini 2.5 Flash\nVertex AI\nthinking_budget=0")]
-        dai["Document AI\nPDF OCR · us-central1"]
-        rapid["RapidAPI JSearch\nLive job listings\n(fallback → mock vacancies)"]
-    end
-
-    s1 -->|"POST /run_sse"| ag1
-    s2 -->|"POST /run_sse"| ag2
-    s3 -->|"POST /run_sse"| pa
-    s4 -->|"POST /run_sse"| ag4
-    s5 -->|"POST /run_sse"| sa
-
-    ag1 -->|"OCR text extraction"| dai
-    ag2 -->|"fetch live jobs"| rapid
-    adk <-->|"Gemini API calls"| gem
-```
+![Architecture Diagram](./docs/architecture.svg)
 
 ### Key Design Decisions
 
