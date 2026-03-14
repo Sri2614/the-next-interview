@@ -68,20 +68,23 @@ def _extract_with_gemini(pdf_base64: str) -> str:
 
         response = client.models.generate_content(
             model="gemini-2.0-flash",
-            contents=genai_types.Content(
-                parts=[
-                    genai_types.Part(
-                        text="Extract all the text from this PDF resume. "
-                             "Return the plain text exactly as it appears, preserving structure."
-                    ),
-                    genai_types.Part(
-                        inline_data=genai_types.Blob(
-                            mime_type="application/pdf",
-                            data=base64.b64decode(pdf_base64),
-                        )
-                    ),
-                ]
-            ),
+            contents=[
+                genai_types.Content(
+                    role="user",
+                    parts=[
+                        genai_types.Part(
+                            text="Extract all the text from this PDF resume. "
+                                 "Return the plain text exactly as it appears, preserving structure."
+                        ),
+                        genai_types.Part(
+                            inline_data=genai_types.Blob(
+                                mime_type="application/pdf",
+                                data=base64.b64decode(pdf_base64),
+                            )
+                        ),
+                    ]
+                )
+            ],
         )
         return response.text or ""
     except Exception as exc:  # noqa: BLE001
