@@ -34,27 +34,27 @@ def _extract_with_document_ai(pdf_base64: str, project_id: str, processor_id: st
     try:
         from google.cloud import documentai  # type: ignore
         from google.api_core.client_options import ClientOptions  # type: ignore
-    except ImportError:
+
+        location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us")
+        processor_name = (
+            f"projects/{project_id}/locations/{location}/processors/{processor_id}"
+        )
+        api_endpoint = f"{location}-documentai.googleapis.com"
+        client_options = ClientOptions(api_endpoint=api_endpoint)
+        client = documentai.DocumentProcessorServiceClient(client_options=client_options)
+
+        raw_document = documentai.RawDocument(
+            content=base64.b64decode(pdf_base64),
+            mime_type="application/pdf",
+        )
+        request = documentai.ProcessRequest(
+            name=processor_name,
+            raw_document=raw_document,
+        )
+        result = client.process_document(request=request)
+        return result.document.text
+    except Exception:  # noqa: BLE001 — covers ImportError, InvalidArgument, auth errors, etc.
         return _extract_with_gemini(pdf_base64)
-
-    location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us")
-    processor_name = (
-        f"projects/{project_id}/locations/{location}/processors/{processor_id}"
-    )
-    api_endpoint = f"{location}-documentai.googleapis.com"
-    client_options = ClientOptions(api_endpoint=api_endpoint)
-    client = documentai.DocumentProcessorServiceClient(client_options=client_options)
-
-    raw_document = documentai.RawDocument(
-        content=base64.b64decode(pdf_base64),
-        mime_type="application/pdf",
-    )
-    request = documentai.ProcessRequest(
-        name=processor_name,
-        raw_document=raw_document,
-    )
-    result = client.process_document(request=request)
-    return result.document.text
 
 
 def _extract_with_gemini(pdf_base64: str) -> str:
