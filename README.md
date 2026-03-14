@@ -29,9 +29,11 @@ Upload a resume → get matched to live job listings → receive a personalised 
 
 ## Architecture
 
+<details>
+<summary><b>Click to expand architecture diagram</b></summary>
+<br>
 <img src="./docs/architecture.svg" width="100%" alt="Architecture Diagram" />
-
-<sub>▶ <a href="./docs/architecture.svg">Open full size</a></sub>
+</details>
 
 The browser calls each ADK agent independently over `POST /run_sse` (streaming). Session state is carried between steps via `localStorage`. No server-side pipeline runs at request time.
 
