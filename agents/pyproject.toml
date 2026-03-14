@@ -15,4 +15,4 @@ dependencies = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["interview_system", "vacancy_matcher", "question_generator", "code_challenge", "answer_evaluator", "readiness_assessor", "resume_parser", "recommendation_agent", "tools"]
+packages = ["interview_system", "vacancy_matcher", "question_generator", "code_challenge", "answer_evaluator", "readiness_assessor", "resume_parser", "recommendation_agent", "text_resume_parser", "tools"]
