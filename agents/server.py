@@ -1,5 +1,5 @@
 """
-Custom ADK server with CORS support.
+Custom ADK server with guaranteed CORS support.
 Run locally:  python server.py
 Deploy:       Docker → Cloud Run (PORT env var set automatically)
 """
@@ -7,25 +7,31 @@ import os
 import pathlib
 import uvicorn
 from dotenv import load_dotenv
-from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.cors import CORSMiddleware
 from google.adk.cli.fast_api import get_fast_api_app
 
 load_dotenv(pathlib.Path(__file__).parent / ".env")
 
 AGENTS_DIR = str(pathlib.Path(__file__).parent)
 
-allow_origins = ["*"]
-
-app = get_fast_api_app(
+# Build the inner ADK FastAPI app
+_adk_app = get_fast_api_app(
     agents_dir=AGENTS_DIR,
     web=False,
-    allow_origins=allow_origins,
+    allow_origins=["*"],
 )
 
-# Explicit CORSMiddleware — ensures headers are present on all responses
-# including 4xx/5xx errors that ADK's internal CORS might miss.
-app.add_middleware(
-    CORSMiddleware,
+# Wrap as a raw ASGI middleware — NOT add_middleware().
+#
+# Why: FastAPI's ServerErrorMiddleware is always the outermost layer when
+# using add_middleware(), so 500 responses are generated BEFORE CORSMiddleware
+# can inject Access-Control-Allow-Origin headers, causing browsers to see
+# "CORS blocked" instead of the real error.
+#
+# Wrapping at the ASGI level puts CORSMiddleware OUTSIDE ServerErrorMiddleware,
+# guaranteeing the header is present on every response including 500s.
+app = CORSMiddleware(
+    app=_adk_app,
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
