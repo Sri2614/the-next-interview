@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { ThemeProvider, ThemeToggle } from '@/components/ThemeProvider'
 import './globals.css'
 
@@ -47,8 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <span>The Next Interview</span>
               </Link>
 
-              <div className="flex items-center gap-3 text-sm">
-                <Link href="/match/fullstack-react-4yr" className="nav-link hidden sm:block">See Demo</Link>
+              <div className="flex items-center gap-3">
                 <ThemeToggle />
               </div>
             </div>
