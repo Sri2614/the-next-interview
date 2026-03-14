@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { ReadinessReport, AssessmentSession, RecommendationReport } from '@/types/session'
 import { getAssessmentSession, getPrepSession, saveAssessmentSession, saveRecommendations } from '@/lib/session'
 import { collectSSEEvents } from '@/lib/adk-client'
-
-const ADK_BASE = process.env.NEXT_PUBLIC_ADK_URL || 'https://the-next-interview-agents-379802788252.us-central1.run.app'
+import { ADK_BASE } from '@/lib/constants'
 
 const VERDICT_CONFIG = {
   ready:        { label: 'Ready to Apply! 🎉', color: '#4ade80', bg: 'rgba(74,222,128,0.1)',  border: 'rgba(74,222,128,0.3)' },
@@ -242,7 +241,7 @@ export default function ReportClient({ sessionId }: Props) {
   async function generateReport(a: AssessmentSession) {
     setLoading(true)
     const userId = 'user-1'
-    const adkSessionId = `report-${sessionId}-${Date.now()}`
+    const adkSessionId = `report-${crypto.randomUUID()}`
     const prep = getPrepSession()
 
     try {
@@ -309,7 +308,7 @@ Generate ReadinessReport JSON with: overallScore (0-100), verdict (ready/almost_
     if (!r.studyPlan?.length) return
     setLoadingRecs(true)
     const userId = 'user-1'
-    const adkSessionId = `recs-${sessionId}-${Date.now()}`
+    const adkSessionId = `recs-${crypto.randomUUID()}`
 
     try {
       await fetch(`${ADK_BASE}/apps/recommendation_agent/users/${userId}/sessions/${adkSessionId}`, {

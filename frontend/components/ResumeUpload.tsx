@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { MockResume } from '@/types/resume'
 import { saveCustomResume } from '@/lib/session'
 import { collectSSEEvents } from '@/lib/adk-client'
+import { ADK_BASE } from '@/lib/constants'
 
 type UploadState = 'idle' | 'reading' | 'parsing' | 'done' | 'error'
 
@@ -59,18 +60,17 @@ export default function ResumeUpload() {
       setState('parsing')
 
       // Step 2: Call resume_parser ADK agent
-      const ADK_URL = process.env.NEXT_PUBLIC_ADK_URL || 'https://the-next-interview-agents-379802788252.us-central1.run.app'
       const APP = 'resume_parser'
       const userId = 'user-1'
-      const sessionId = `resume-parse-${Date.now()}`
+      const sessionId = `resume-parse-${crypto.randomUUID()}`
 
-      await fetch(`${ADK_URL}/apps/${APP}/users/${userId}/sessions/${sessionId}`, {
+      await fetch(`${ADK_BASE}/apps/${APP}/users/${userId}/sessions/${sessionId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pdf_base64: base64 }),
       })
 
-      const events = await collectSSEEvents(`${ADK_URL}/run_sse`, {
+      const events = await collectSSEEvents(`${ADK_BASE}/run_sse`, {
         appName: APP,
         userId,
         sessionId,

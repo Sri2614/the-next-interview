@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { saveCustomResume } from '@/lib/session'
 import { collectSSEEvents } from '@/lib/adk-client'
+import { ADK_BASE } from '@/lib/constants'
 import type { MockResume } from '@/types/resume'
 
 type ParseState = 'idle' | 'parsing' | 'done' | 'error'
@@ -45,19 +46,18 @@ export default function TextResumeInput() {
     setError(null)
     setParseStep(0)
 
-    const ADK_URL = process.env.NEXT_PUBLIC_ADK_URL || 'https://the-next-interview-agents-379802788252.us-central1.run.app'
     const APP = 'text_resume_parser'
     const userId = 'user-1'
-    const sessionId = `text-parse-${Date.now()}`
+    const sessionId = `text-parse-${crypto.randomUUID()}`
 
     try {
-      await fetch(`${ADK_URL}/apps/${APP}/users/${userId}/sessions/${sessionId}`, {
+      await fetch(`${ADK_BASE}/apps/${APP}/users/${userId}/sessions/${sessionId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
       })
 
-      const events = await collectSSEEvents(`${ADK_URL}/run_sse`, {
+      const events = await collectSSEEvents(`${ADK_BASE}/run_sse`, {
         appName: APP,
         userId,
         sessionId,
@@ -170,7 +170,7 @@ export default function TextResumeInput() {
             className="flex-1 py-3 rounded-xl text-white font-semibold transition-colors"
             style={{ background: 'var(--accent)' }}
           >
-            Match Against 23 Vacancies →
+            Find Live Matches →
           </button>
           <button
             onClick={() => { setState('idle'); setParsedResume(null); setText('') }}

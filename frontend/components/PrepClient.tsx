@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import ReactMarkdown from 'react-markdown'
 import type { Vacancy } from '@/types/vacancy'
-import type { GeneratedQuestion, CodeChallenge, PrepSession } from '@/types/session'
+import type { GeneratedQuestion, CodeChallenge, PrepSession, SolutionStep } from '@/types/session'
 import { getPrepSession, savePrepSession } from '@/lib/session'
 import { collectSSEEvents } from '@/lib/adk-client'
-
-const ADK_BASE = process.env.NEXT_PUBLIC_ADK_URL || 'https://the-next-interview-agents-379802788252.us-central1.run.app'
+import { ADK_BASE, CODING_LANGUAGES } from '@/lib/constants'
 
 interface Props {
   vacancy: Vacancy
@@ -33,6 +33,62 @@ export default function PrepClient({ vacancy }: Props) {
   const [revealedAnswers, setRevealedAnswers] = useState<Set<string>>(new Set())
   const [expandedSteps, setExpandedSteps] = useState(false)
 
+  // Safely coerce any value to an array — guards against the agent returning
+  // a string, object, or null instead of a proper JS array.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function toArr(v: any): any[] { return Array.isArray(v) ? v : [] }
+
+  // Safely coerce any value to a string — prevents "Objects are not valid as
+  // React children" when the LLM returns a nested object instead of plain text.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function toStr(v: any): string {
+    if (v == null) return ''
+    if (typeof v === 'string') return v
+    if (typeof v === 'object') return JSON.stringify(v)
+    return String(v)
+  }
+
+  // Normalise a step regardless of whether the agent returned an object or a
+  // bare string (e.g. "1. Initialise the DP table…").
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function normalizeStep(step: any, idx: number): SolutionStep {
+    if (typeof step === 'string') {
+      return { stepNumber: idx + 1, title: '', explanation: step }
+    }
+    return {
+      stepNumber: typeof step?.stepNumber === 'number' ? step.stepNumber : idx + 1,
+      title: toStr(step?.title),
+      explanation: toStr(step?.explanation),
+      codeSnippet: step?.codeSnippet ? toStr(step.codeSnippet) : undefined,
+    }
+  }
+
+  // Renders markdown text safely — used for any field that may contain
+  // markdown syntax like **bold**, bullet lists, or inline code.
+  function Md({ children, className }: { children: string; className?: string }) {
+    return (
+      <div className={className}>
+      <ReactMarkdown
+        components={{
+          p: ({ children: c }) => <p className="mb-1 last:mb-0">{c}</p>,
+          ul: ({ children: c }) => <ul className="list-disc ml-4 space-y-0.5">{c}</ul>,
+          ol: ({ children: c }) => <ol className="list-decimal ml-4 space-y-0.5">{c}</ol>,
+          li: ({ children: c }) => <li>{c}</li>,
+          code: ({ children: c }) => <code className="px-1 rounded text-xs" style={{ background: 'rgba(148,163,184,0.12)', color: '#94a3b8' }}>{c}</code>,
+          pre: ({ children: c }) => <pre className="rounded-lg p-3 overflow-x-auto text-xs my-2" style={{ background: '#0d1117', color: '#e2e8f0' }}>{c}</pre>,
+          strong: ({ children: c }) => <strong style={{ color: 'var(--text-primary)' }}>{c}</strong>,
+          em: ({ children: c }) => <em style={{ color: 'var(--text-secondary)' }}>{c}</em>,
+          h1: ({ children: c }) => <h1 className="text-base font-bold mt-2 mb-1" style={{ color: 'var(--text-primary)' }}>{c}</h1>,
+          h2: ({ children: c }) => <h2 className="text-sm font-bold mt-2 mb-1" style={{ color: 'var(--text-primary)' }}>{c}</h2>,
+          h3: ({ children: c }) => <h3 className="text-sm font-semibold mt-1 mb-0.5" style={{ color: 'var(--text-primary)' }}>{c}</h3>,
+        }}
+      >
+        {children}
+      </ReactMarkdown>
+      </div>
+    )
+  }
+
   useEffect(() => {
     const s = getPrepSession()
     // Only restore cached questions/challenge if they belong to THIS vacancy
@@ -41,6 +97,14 @@ export default function PrepClient({ vacancy }: Props) {
       if (s.generatedQuestions) setQuestions(s.generatedQuestions)
       if (s.codeChallenge) setChallenge(s.codeChallenge)
     }
+
+    // Warmup ping — silently wake the Cloud Run container so the first real
+    // request doesn't hit a cold-start timeout. Fire-and-forget, no UI effect.
+    fetch(`${ADK_BASE}/apps/question_generator/users/warmup/sessions/warmup-ping`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    }).catch(() => { /* ignore — warmup is best-effort */ })
   }, [vacancy.id])
 
   // Robust ADK response parser — handles stateDelta (object or string) + content.parts text fallback
@@ -69,51 +133,73 @@ export default function PrepClient({ vacancy }: Props) {
     return null
   }
 
+  // Helper: create an ADK session, with one retry if the agent is cold-starting.
+  async function createADKSession(appName: string, userId: string, sessionId: string): Promise<void> {
+    const url = `${ADK_BASE}/apps/${appName}/users/${userId}/sessions/${sessionId}`
+    const opts = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) }
+    const res = await fetch(url, opts)
+    if (!res.ok) {
+      // Cold-start 503 — wait 4 s and try once more before giving up
+      await new Promise(r => setTimeout(r, 4000))
+      const retry = await fetch(url, opts)
+      if (!retry.ok) throw new Error(`Agent unavailable (${retry.status}) — please try again`)
+    }
+  }
+
   async function generateQuestions() {
     setQuestionsLoading(true)
     setQuestionsText('Connecting to AI…')
     setQuestionsError('')
 
     const userId = 'user-1'
-    const sessionId = `qgen-${vacancy.id}-${Date.now()}`
 
-    try {
-      await fetch(`${ADK_BASE}/apps/question_generator/users/${userId}/sessions/${sessionId}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}),
-      })
+    // Two attempts: handles cold-start on first visit
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const sessionId = `qgen-${crypto.randomUUID()}`
+      try {
+        if (attempt > 0) {
+          setQuestionsText('Agent warming up — retrying…')
+          await new Promise(r => setTimeout(r, 4000))
+        }
 
-      const matchResult = session?.matchResult
-      const prompt = `Generate 15 interview questions for vacancy_id: ${vacancy.id}.
+        await createADKSession('question_generator', userId, sessionId)
+
+        const matchResult = session?.matchResult
+        const prompt = `Generate 15 interview questions for vacancy_id: ${vacancy.id}.
 Vacancy: ${JSON.stringify({ title: vacancy.title, techStack: vacancy.techStack, requirements: vacancy.requirements, industry: vacancy.industry })}.
 ${matchResult ? `Skill gaps to probe: ${matchResult.missingSkills.join(', ')}` : ''}
 Return JSON with { "questions": [...] } where each has: id, question, difficulty, focusArea, hint, keyPoints.`
 
-      setQuestionsText('Generating questions…')
-      const events = await collectSSEEvents(`${ADK_BASE}/run_sse`, {
-        appName: 'question_generator', userId, sessionId, newMessage: { parts: [{ text: prompt }], role: 'user' },
-      })
-      setQuestionsText('Parsing results…')
+        setQuestionsText('Generating questions…')
+        const events = await collectSSEEvents(`${ADK_BASE}/run_sse`, {
+          appName: 'question_generator', userId, sessionId, newMessage: { parts: [{ text: prompt }], role: 'user' },
+        })
+        setQuestionsText('Parsing results…')
 
-      const parsed = extractJsonFromEvents(events, 'question_generator', 'questions')
-      const qs: GeneratedQuestion[] = (parsed?.questions as GeneratedQuestion[]) ?? []
+        const parsed = extractJsonFromEvents(events, 'question_generator', 'questions')
+        const qs: GeneratedQuestion[] = (parsed?.questions as GeneratedQuestion[]) ?? []
 
-      if (qs.length === 0) throw new Error('No questions returned — please try again')
+        if (qs.length === 0) throw new Error('No questions returned')
 
-      setQuestions(qs)
-      const baseSession: PrepSession = session ?? {
-        sessionId, resumeId: '', vacancyId: vacancy.id,
-        matchResult: { vacancyId: vacancy.id, overallScore: 0, breakdown: { skillsMatch: 0, experienceMatch: 0, techStackMatch: 0 }, matchedSkills: [], missingSkills: [], niceToHaveGaps: [], recommendation: 'good', strengthSummary: '', gapSummary: '' },
-        createdAt: new Date().toISOString(),
+        setQuestions(qs)
+        const baseSession: PrepSession = session ?? {
+          sessionId, resumeId: '', vacancyId: vacancy.id,
+          matchResult: { vacancyId: vacancy.id, overallScore: 0, breakdown: { skillsMatch: 0, experienceMatch: 0, techStackMatch: 0 }, matchedSkills: [], missingSkills: [], niceToHaveGaps: [], recommendation: 'good', strengthSummary: '', gapSummary: '' },
+          createdAt: new Date().toISOString(),
+        }
+        const updated: PrepSession = { ...baseSession, generatedQuestions: qs, questionsGeneratedAt: new Date().toISOString() }
+        savePrepSession(updated)
+        setSession(updated)
+        break // success — exit retry loop
+
+      } catch (err) {
+        if (attempt < 1) continue // retry once
+        setQuestionsError(err instanceof Error ? err.message : 'Failed to generate questions — please try again')
       }
-      const updated: PrepSession = { ...baseSession, generatedQuestions: qs, questionsGeneratedAt: new Date().toISOString() }
-      savePrepSession(updated)
-      setSession(updated)
-    } catch (err) {
-      setQuestionsError(err instanceof Error ? err.message : 'Failed to generate questions')
-    } finally {
-      setQuestionsLoading(false)
-      setQuestionsText('')
     }
+
+    setQuestionsLoading(false)
+    setQuestionsText('')
   }
 
   async function generateChallenge() {
@@ -122,49 +208,56 @@ Return JSON with { "questions": [...] } where each has: id, question, difficulty
     setChallengeError('')
 
     const userId = 'user-1'
-    const sessionId = `challenge-${vacancy.id}-${Date.now()}`
 
-    try {
-      await fetch(`${ADK_BASE}/apps/code_challenge/users/${userId}/sessions/${sessionId}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}),
-      })
+    // Two attempts: handles cold-start on first visit
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const sessionId = `challenge-${crypto.randomUUID()}`
+      try {
+        if (attempt > 0) {
+          setChallengeText('Agent warming up — retrying…')
+          await new Promise(r => setTimeout(r, 4000))
+        }
 
-      const primaryLang = session ? [
-        ...session.matchResult.matchedSkills.filter(s =>
-          ['Java', 'Python', 'TypeScript', 'Go', 'Kotlin', 'JavaScript', 'Scala'].includes(s)
-        )
-      ][0] : vacancy.techStack[0]
+        await createADKSession('code_challenge', userId, sessionId)
 
-      const prompt = `Generate a coding challenge for vacancy_id: ${vacancy.id}.
+        const primaryLang = session ? [
+          ...session.matchResult.matchedSkills.filter(s => CODING_LANGUAGES.includes(s))
+        ][0] : vacancy.techStack[0]
+
+        const prompt = `Generate a coding challenge for vacancy_id: ${vacancy.id}.
 Vacancy: ${JSON.stringify({ title: vacancy.title, industry: vacancy.industry, techStack: vacancy.techStack })}.
 Primary language: ${primaryLang ?? vacancy.techStack[0]}.
 Return complete JSON CodeChallenge with: title, description, difficulty, language, estimatedMinutes, starterCode, solution (code, steps[], timeComplexity, spaceComplexity, whyItWorks, commonMistakes[]), testCases[], followUps[], relatedConcepts[].`
 
-      setChallengeText('Generating challenge…')
-      const events = await collectSSEEvents(`${ADK_BASE}/run_sse`, {
-        appName: 'code_challenge', userId, sessionId, newMessage: { parts: [{ text: prompt }], role: 'user' },
-      })
-      setChallengeText('Parsing challenge…')
+        setChallengeText('Generating challenge…')
+        const events = await collectSSEEvents(`${ADK_BASE}/run_sse`, {
+          appName: 'code_challenge', userId, sessionId, newMessage: { parts: [{ text: prompt }], role: 'user' },
+        })
+        setChallengeText('Parsing challenge…')
 
-      const parsed = extractJsonFromEvents(events, 'code_challenge', 'title')
-      if (!parsed?.title) throw new Error('No challenge returned — please try again')
+        const parsed = extractJsonFromEvents(events, 'code_challenge', 'title')
+        if (!parsed?.title) throw new Error('No challenge returned')
 
-      const c = parsed as unknown as CodeChallenge
-      setChallenge(c)
-      const baseSession = session ?? {
-        sessionId, resumeId: '', vacancyId: vacancy.id,
-        matchResult: { vacancyId: vacancy.id, overallScore: 0, breakdown: { skillsMatch: 0, experienceMatch: 0, techStackMatch: 0 }, matchedSkills: [], missingSkills: [], niceToHaveGaps: [], recommendation: 'good' as const, strengthSummary: '', gapSummary: '' },
-        createdAt: new Date().toISOString(),
+        const c = parsed as unknown as CodeChallenge
+        setChallenge(c)
+        const baseSession = session ?? {
+          sessionId, resumeId: '', vacancyId: vacancy.id,
+          matchResult: { vacancyId: vacancy.id, overallScore: 0, breakdown: { skillsMatch: 0, experienceMatch: 0, techStackMatch: 0 }, matchedSkills: [], missingSkills: [], niceToHaveGaps: [], recommendation: 'good' as const, strengthSummary: '', gapSummary: '' },
+          createdAt: new Date().toISOString(),
+        }
+        const updated = { ...baseSession, codeChallenge: c, challengeGeneratedAt: new Date().toISOString() }
+        savePrepSession(updated)
+        setSession(updated)
+        break // success — exit retry loop
+
+      } catch (err) {
+        if (attempt < 1) continue // retry once
+        setChallengeError(err instanceof Error ? err.message : 'Failed to generate challenge — please try again')
       }
-      const updated = { ...baseSession, codeChallenge: c, challengeGeneratedAt: new Date().toISOString() }
-      savePrepSession(updated)
-      setSession(updated)
-    } catch (err) {
-      setChallengeError(err instanceof Error ? err.message : 'Failed to generate challenge')
-    } finally {
-      setChallengeLoading(false)
-      setChallengeText('')
     }
+
+    setChallengeLoading(false)
+    setChallengeText('')
   }
 
   function toggleReveal(id: string) {
@@ -266,21 +359,27 @@ Return complete JSON CodeChallenge with: title, description, difficulty, languag
                   <div key={q.id} className="rounded-2xl p-5 space-y-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
                     <div className="flex items-start gap-3">
                       <span className="text-sm font-bold mt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }}>Q{i + 1}</span>
-                      <p className="font-medium leading-relaxed" style={{ color: 'var(--text-primary)' }}>{q.question}</p>
+                      <div className="font-medium leading-relaxed" style={{ color: 'var(--text-primary)' }}>
+                        <Md>{toStr(q.question)}</Md>
+                      </div>
                     </div>
                     {q.focusArea && (
-                      <p className="text-xs ml-6" style={{ color: 'var(--text-muted)' }}>Focus: {q.focusArea}</p>
+                      <p className="text-xs ml-6" style={{ color: 'var(--text-muted)' }}>Focus: {toStr(q.focusArea)}</p>
                     )}
                     {q.hint && (
                       <div className="ml-6 rounded-lg px-3 py-2 text-sm" style={{ background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>
-                        💡 Hint: {q.hint}
+                        <span className="font-semibold">💡 Hint: </span>
+                        <Md>{toStr(q.hint)}</Md>
                       </div>
                     )}
                     {revealedAnswers.has(q.id) && q.keyPoints && (
                       <div className="ml-6 rounded-lg p-3 space-y-1" style={{ background: 'rgba(5,150,105,0.06)', border: '1px solid rgba(5,150,105,0.18)' }}>
                         <p className="text-xs font-semibold mb-2" style={{ color: 'var(--success)' }}>Key Points to Cover:</p>
                         {q.keyPoints.map((kp, ki) => (
-                          <p key={ki} className="text-sm" style={{ color: 'var(--text-secondary)' }}>• {kp}</p>
+                          <div key={ki} className="text-sm flex gap-2" style={{ color: 'var(--text-secondary)' }}>
+                            <span>•</span>
+                            <Md>{toStr(kp)}</Md>
+                          </div>
                         ))}
                       </div>
                     )}
@@ -346,8 +445,8 @@ Return complete JSON CodeChallenge with: title, description, difficulty, languag
                     </div>
                   </div>
                 </div>
-                <div className="prose prose-invert text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                  {challenge.description.split('\n').map((line, i) => <p key={i}>{line}</p>)}
+                <div className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                  <Md>{toStr(challenge.description)}</Md>
                 </div>
               </div>
 
@@ -358,11 +457,11 @@ Return complete JSON CodeChallenge with: title, description, difficulty, languag
               </div>
 
               {/* Test cases */}
-              {challenge.testCases.length > 0 && (
+              {toArr(challenge.testCases).length > 0 && (
                 <div className="rounded-2xl p-5 space-y-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
                   <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Test Cases</h3>
                   <div className="space-y-2">
-                    {challenge.testCases.map((tc, i) => (
+                    {toArr(challenge.testCases).map((tc, i) => (
                       <div key={i} className="rounded-xl p-3 text-sm" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}>
                         <p className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
                           {tc.description}
@@ -387,51 +486,67 @@ Return complete JSON CodeChallenge with: title, description, difficulty, languag
                     {expandedSteps ? '▲' : '▼'} Step-by-Step Solution
                   </span>
                   <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    {challenge.solution.steps.length} steps · {challenge.solution.timeComplexity}
+                    {toArr(challenge.solution?.steps).length} steps · {challenge.solution?.timeComplexity}
                   </span>
                 </button>
                 {expandedSteps && (
                   <div className="p-5 space-y-6" style={{ background: 'var(--bg-card)', borderTop: '1px solid var(--border)' }}>
-                    {challenge.solution.steps.map(step => (
-                      <div key={step.stepNumber} className="space-y-2">
-                        <div className="flex items-center gap-3">
-                          <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}>
-                            {step.stepNumber}
+                    {toArr(challenge.solution?.steps).map((rawStep, idx) => {
+                      const step = normalizeStep(rawStep, idx)
+                      return (
+                        <div key={step.stepNumber} className="space-y-2">
+                          <div className="flex items-center gap-3">
+                            <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}>
+                              {step.stepNumber}
+                            </div>
+                            {step.title && (
+                              <h4 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{step.title}</h4>
+                            )}
                           </div>
-                          <h4 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{step.title}</h4>
+                          {step.explanation && (
+                            <div className="ml-10 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                              <Md>{step.explanation}</Md>
+                            </div>
+                          )}
+                          {step.codeSnippet && (
+                            <pre className="ml-10 rounded-lg p-3 overflow-x-auto text-xs" style={{ background: '#0d1117' }}>
+                              <code style={{ color: '#e2e8f0' }}>{step.codeSnippet}</code>
+                            </pre>
+                          )}
                         </div>
-                        <p className="ml-10 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{step.explanation}</p>
-                        {step.codeSnippet && (
-                          <pre className="ml-10" style={{ background: '#0d1117' }}><code style={{ color: '#e2e8f0' }}>{step.codeSnippet}</code></pre>
-                        )}
-                      </div>
-                    ))}
+                      )
+                    })}
                     <div className="rounded-xl p-4 space-y-2" style={{ background: 'rgba(5,150,105,0.06)', border: '1px solid rgba(5,150,105,0.18)' }}>
                       <p className="text-sm font-semibold" style={{ color: 'var(--success)' }}>Why It Works</p>
-                      <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{challenge.solution.whyItWorks}</p>
+                      <div className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                        <Md>{toStr(challenge.solution?.whyItWorks)}</Md>
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3 text-sm">
                       <div className="rounded-xl p-3" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}>
                         <p className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Time Complexity</p>
-                        <p style={{ color: 'var(--accent)' }}>{challenge.solution.timeComplexity}</p>
+                        <p style={{ color: 'var(--accent)' }}>{challenge.solution?.timeComplexity}</p>
                       </div>
                       <div className="rounded-xl p-3" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}>
                         <p className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Space Complexity</p>
-                        <p style={{ color: 'var(--accent)' }}>{challenge.solution.spaceComplexity}</p>
+                        <p style={{ color: 'var(--accent)' }}>{challenge.solution?.spaceComplexity}</p>
                       </div>
                     </div>
-                    {challenge.solution.commonMistakes?.length > 0 && (
+                    {toArr(challenge.solution?.commonMistakes).length > 0 && (
                       <div className="space-y-2">
                         <p className="font-semibold text-sm" style={{ color: 'var(--error)' }}>Common Mistakes</p>
-                        {challenge.solution.commonMistakes.map((m, i) => (
-                          <p key={i} className="text-sm" style={{ color: 'var(--text-secondary)' }}>⚠️ {m}</p>
+                        {toArr(challenge.solution?.commonMistakes).map((m, i) => (
+                          <div key={i} className="text-sm flex gap-2" style={{ color: 'var(--text-secondary)' }}>
+                            <span>⚠️</span>
+                            <Md>{toStr(m)}</Md>
+                          </div>
                         ))}
                       </div>
                     )}
-                    {challenge.followUps?.length > 0 && (
+                    {toArr(challenge.followUps).length > 0 && (
                       <div className="space-y-2">
                         <p className="font-semibold text-sm" style={{ color: '#f59e0b' }}>Follow-Up Questions</p>
-                        {challenge.followUps.map((fu, i) => (
+                        {toArr(challenge.followUps).map((fu, i) => (
                           <p key={i} className="text-sm" style={{ color: 'var(--text-secondary)' }}>→ {fu}</p>
                         ))}
                       </div>

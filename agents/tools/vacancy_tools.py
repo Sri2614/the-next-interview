@@ -11,13 +11,17 @@ Falls back to 23 local mock vacancies when:
 """
 
 import json
+import logging
 import os
 import pathlib
+import urllib.error
 import urllib.parse
 import urllib.request
 from typing import Any
 
 from google.adk.tools import ToolContext
+
+logger = logging.getLogger(__name__)
 
 DATA_DIR = pathlib.Path(__file__).parent.parent.parent / "data"
 VACANCIES_DIR = DATA_DIR / "vacancies"
@@ -41,6 +45,7 @@ def fetch_live_vacancies(tool_context: ToolContext) -> list[dict[str, Any]]:
 
     if not api_key:
         # Demo / local mode — no API key configured
+        logger.info("RAPIDAPI_KEY not set — running in demo mode with mock vacancies")
         return _load_all_vacancies()
 
     try:
@@ -65,8 +70,9 @@ def fetch_live_vacancies(tool_context: ToolContext) -> list[dict[str, Any]]:
 
         return [_normalise_jsearch_job(j) for j in jobs[:20]]
 
-    except Exception:
-        # Any error (timeout, bad JSON, API limit) → fallback
+    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, TimeoutError, OSError) as exc:
+        # Network, HTTP, JSON decode, or timeout error → log and fall back to mock data
+        logger.warning("JSearch API call failed (%s: %s) — falling back to mock vacancies", type(exc).__name__, exc)
         return _load_all_vacancies()
 
 

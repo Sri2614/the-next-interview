@@ -7,6 +7,7 @@ import type { Vacancy, MatchResult } from '@/types/vacancy'
 import type { PrepSession } from '@/types/session'
 import { savePrepSession, saveMatchCache, getMatchCache, saveLiveVacancy } from '@/lib/session'
 import { collectSSEEvents } from '@/lib/adk-client'
+import { ADK_BASE } from '@/lib/constants'
 
 const PROGRESS_STEPS = [
   'Connecting to AI agents…',
@@ -78,13 +79,12 @@ export default function MatchClient({ resume, vacancies, autoStart = false }: Pr
 
     try {
       const userId = 'user-1'
-      const sessionId = `match-${resume.id}-${Date.now()}`
-      const ADK_URL = process.env.NEXT_PUBLIC_ADK_URL || 'https://the-next-interview-agents-379802788252.us-central1.run.app'
+      const sessionId = `match-${crypto.randomUUID()}`
       const APP = 'vacancy_matcher'
 
       // Create session — pass role so the backend fetch_live_vacancies tool
       // can search today's live jobs for this specific role and location
-      await fetch(`${ADK_URL}/apps/${APP}/users/${userId}/sessions/${sessionId}`, {
+      await fetch(`${ADK_BASE}/apps/${APP}/users/${userId}/sessions/${sessionId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -103,7 +103,7 @@ export default function MatchClient({ resume, vacancies, autoStart = false }: Pr
         experience: resume.experience,
       })
 
-      const events = await collectSSEEvents(`${ADK_URL}/run_sse`, {
+      const events = await collectSSEEvents(`${ADK_BASE}/run_sse`, {
         appName: APP,
         userId,
         sessionId,
@@ -192,7 +192,7 @@ export default function MatchClient({ resume, vacancies, autoStart = false }: Pr
     }
 
     const session: PrepSession = {
-      sessionId: `prep-${Date.now()}`,
+      sessionId: `prep-${crypto.randomUUID()}`,
       resumeId:  resume.id,
       vacancyId: vacancy.id,
       matchResult: match,

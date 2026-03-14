@@ -3,7 +3,7 @@
  * New API: POST /run and POST /run_sse with appName/userId/sessionId in the body.
  */
 
-const ADK_BASE = process.env.NEXT_PUBLIC_ADK_URL || 'https://the-next-interview-agents-379802788252.us-central1.run.app'
+import { ADK_BASE } from '@/lib/constants'
 const APP_NAME = 'interview_system'
 
 // ── SSE event type ────────────────────────────────────────────────────────────

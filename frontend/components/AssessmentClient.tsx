@@ -6,8 +6,8 @@ import type { GeneratedQuestion, QuestionAnswer, AnswerEvaluation, AssessmentSes
 import { getPrepSession, getAssessmentSession, saveAssessmentSession } from '@/lib/session'
 import { nanoid } from 'nanoid'
 import { collectSSEEvents } from '@/lib/adk-client'
+import { ADK_BASE } from '@/lib/constants'
 
-const ADK_BASE = process.env.NEXT_PUBLIC_ADK_URL || 'https://the-next-interview-agents-379802788252.us-central1.run.app'
 const APP = 'answer_evaluator'
 
 interface Props {
@@ -57,8 +57,8 @@ export default function AssessmentClient({ sessionId }: Props) {
     setError('')
 
     const userId = 'user-1'
-    // Append timestamp so each attempt gets a fresh ADK session (avoids 409 on retry)
-    const adkSessionId = `assess-${sessionId}-${Date.now()}`
+    // Use random UUID so each attempt gets a fresh ADK session (avoids 409 on retry)
+    const adkSessionId = `assess-${nanoid()}`
 
     try {
       await fetch(`${ADK_BASE}/apps/${APP}/users/${userId}/sessions/${adkSessionId}`, {

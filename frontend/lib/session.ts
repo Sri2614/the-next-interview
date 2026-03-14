@@ -6,18 +6,28 @@ import type { MockResume } from '@/types/resume'
 const PREP_SESSION_KEY = 'tni_prep_session'
 const ASSESSMENT_SESSION_KEY = 'tni_assessment_session'
 
+/** Sessions older than 7 days are discarded on read to prevent stale data. */
+const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1_000
+
 // ─── Prep Session ────────────────────────────────────────────────────────────
 
 export function savePrepSession(session: PrepSession): void {
   if (typeof window === 'undefined') return
-  localStorage.setItem(PREP_SESSION_KEY, JSON.stringify(session))
+  localStorage.setItem(PREP_SESSION_KEY, JSON.stringify({ ...session, _savedAt: Date.now() }))
 }
 
 export function getPrepSession(): PrepSession | null {
   if (typeof window === 'undefined') return null
   try {
     const raw = localStorage.getItem(PREP_SESSION_KEY)
-    return raw ? (JSON.parse(raw) as PrepSession) : null
+    if (!raw) return null
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parsed: any = JSON.parse(raw)
+    if (parsed._savedAt && Date.now() - parsed._savedAt > SESSION_TTL_MS) {
+      localStorage.removeItem(PREP_SESSION_KEY)
+      return null
+    }
+    return parsed as PrepSession
   } catch {
     return null
   }
@@ -32,14 +42,21 @@ export function clearPrepSession(): void {
 
 export function saveAssessmentSession(session: AssessmentSession): void {
   if (typeof window === 'undefined') return
-  localStorage.setItem(ASSESSMENT_SESSION_KEY, JSON.stringify(session))
+  localStorage.setItem(ASSESSMENT_SESSION_KEY, JSON.stringify({ ...session, _savedAt: Date.now() }))
 }
 
 export function getAssessmentSession(): AssessmentSession | null {
   if (typeof window === 'undefined') return null
   try {
     const raw = localStorage.getItem(ASSESSMENT_SESSION_KEY)
-    return raw ? (JSON.parse(raw) as AssessmentSession) : null
+    if (!raw) return null
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parsed: any = JSON.parse(raw)
+    if (parsed._savedAt && Date.now() - parsed._savedAt > SESSION_TTL_MS) {
+      localStorage.removeItem(ASSESSMENT_SESSION_KEY)
+      return null
+    }
+    return parsed as AssessmentSession
   } catch {
     return null
   }
