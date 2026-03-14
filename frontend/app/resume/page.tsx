@@ -13,7 +13,7 @@ export default function ResumePage() {
         <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--text-muted)' }}>Step 1 of 5</p>
         <h1 className="text-3xl font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Your Resume</h1>
         <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-          Upload a PDF, paste CV text, or choose a demo profile to match against 23 vacancies.
+          Upload a PDF, paste CV text, or choose a demo profile to match against live job vacancies.
         </p>
       </div>
 

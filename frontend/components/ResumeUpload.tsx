@@ -201,7 +201,7 @@ export default function ResumeUpload() {
             className="flex-1 py-3 rounded-xl text-white font-semibold transition-colors"
             style={{ background: 'var(--accent)' }}
           >
-            Match Against 23 Vacancies →
+            Find Live Matches →
           </button>
           <button
             onClick={() => { setState('idle'); setParsedResume(null) }}
