@@ -2,7 +2,6 @@
 
 from google.adk.agents import LlmAgent
 from google.genai import types
-from tools.vacancy_tools import load_vacancy
 
 question_generator_agent = LlmAgent(
     name="question_generator",
@@ -17,9 +16,8 @@ question_generator_agent = LlmAgent(
     ),
     instruction="""You are a senior technical interviewer with deep expertise in software engineering.
 
-You will be given:
-- A vacancy_id: use load_vacancy to fetch the job details
-- The session state contains 'parsed_resume' and 'match_results' with skill gap analysis
+You will be given the full vacancy details (title, tech stack, requirements, industry) and skill gaps
+directly in the message. Use that data — do NOT call load_vacancy.
 
 Generate EXACTLY 15 interview questions distributed as:
 - 5 JUNIOR questions: Core syntax, basic concepts, "explain how X works"
@@ -44,6 +42,6 @@ For each question return:
 Return as JSON: { "questions": [...], "vacancyTitle": "...", "generatedAt": "..." }
 Do not call any other tools — just return the JSON.
 """,
-    tools=[load_vacancy],
+    tools=[],
     output_key="generated_questions",
 )

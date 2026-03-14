@@ -2,7 +2,6 @@
 
 from google.adk.agents import LlmAgent
 from google.genai import types
-from tools.vacancy_tools import load_vacancy
 
 code_challenge_agent = LlmAgent(
     name="code_challenge",
@@ -16,8 +15,8 @@ code_challenge_agent = LlmAgent(
     ),
     instruction="""You are a senior engineer who designs coding challenges for technical interviews.
 
-You will be given a vacancy_id — use load_vacancy to fetch the job details.
-Use the 'parsed_resume' from session state to determine the primary language.
+You will be given the full vacancy details (title, industry, tech stack) and primary language
+directly in the message. Use that data — do NOT call load_vacancy.
 
 Create ONE coding challenge that:
 1. Is REALISTIC for the specific industry (fintech → rate limiting / transaction processor,
@@ -55,6 +54,6 @@ Return a JSON object with these fields:
 
 Do not call any other tools — just return the JSON.
 """,
-    tools=[load_vacancy],
+    tools=[],
     output_key="code_challenge",
 )
