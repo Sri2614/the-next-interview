@@ -19,9 +19,28 @@ steps:
       - |
         AGENTS_URL=$(cat /workspace/agents_url.txt)
         docker build \
+          -f Dockerfile.frontend \
           --build-arg NEXT_PUBLIC_ADK_URL=$$AGENTS_URL \
           -t us-central1-docker.pkg.dev/thesimplifiedtech/the-next-interview/frontend:latest \
           .
+
+  # Step 3: Push the image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - push
+      - us-central1-docker.pkg.dev/thesimplifiedtech/the-next-interview/frontend:latest
+
+  # Step 4: Deploy the new image to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        gcloud run deploy the-next-interview-frontend \
+          --image us-central1-docker.pkg.dev/thesimplifiedtech/the-next-interview/frontend:latest \
+          --region us-central1 \
+          --project thesimplifiedtech \
+          --allow-unauthenticated
 
 images:
   - us-central1-docker.pkg.dev/thesimplifiedtech/the-next-interview/frontend:latest
