@@ -86,6 +86,9 @@ const CUSTOM_RESUME_KEY = 'tni_custom_resume'
 export function saveCustomResume(resume: MockResume): void {
   if (typeof window === 'undefined') return
   localStorage.setItem(CUSTOM_RESUME_KEY, JSON.stringify(resume))
+  // Always clear the match cache when a new resume is saved so the next
+  // match run fetches fresh live results instead of returning stale mocks.
+  localStorage.removeItem(`tni_match_custom`)
 }
 
 export function getCustomResume(): MockResume | null {
