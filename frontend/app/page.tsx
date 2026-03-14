@@ -217,7 +217,7 @@ export default function HomePage() {
             <div className="space-y-3 mt-2">
               <div className="rounded-xl p-3 text-sm" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}>
                 <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>Q:</span>
-                <span className="ml-2" style={{ color: 'var(--text-secondary)' }}>Explain how React's reconciliation algorithm works.</span>
+                <span className="ml-2" style={{ color: 'var(--text-secondary)' }}>Explain how React&apos;s reconciliation algorithm works.</span>
               </div>
               <div className="rounded-xl p-3 text-sm" style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)' }}>
                 <span className="font-semibold" style={{ color: 'var(--accent)' }}>Your answer:</span>
