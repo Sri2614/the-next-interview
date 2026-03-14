@@ -21,15 +21,18 @@ function skillColor(pct: number)  { return pct >= 80 ? '#34d399' : pct >= 50 ? '
 function skillBg(pct: number)     { return pct >= 80 ? 'rgba(52,211,153,0.10)' : pct >= 50 ? 'rgba(251,191,36,0.10)' : 'rgba(248,113,113,0.10)' }
 function skillBorder(pct: number) { return pct >= 80 ? 'rgba(52,211,153,0.25)' : pct >= 50 ? 'rgba(251,191,36,0.25)' : 'rgba(248,113,113,0.25)' }
 
-const COMPARISON = [
-  { feature: 'Matched to real job listings',    tni: true,  leet: false, blind: false },
-  { feature: 'No sign-up required',             tni: true,  leet: false, blind: false },
-  { feature: 'CV upload & AI parsing',          tni: true,  leet: false, blind: false },
-  { feature: 'Skill gap analysis per vacancy',  tni: true,  leet: false, blind: false },
-  { feature: 'AI readiness verdict',            tni: true,  leet: false, blind: false },
-  { feature: 'Coding challenges',               tni: true,  leet: true,  blind: false },
-  { feature: 'Track score across attempts',     tni: true,  leet: false, blind: false },
-  { feature: 'Course recommendations',          tni: true,  leet: false, blind: false },
+const OLD_WAY = [
+  { icon: '🔍', title: 'Google "interview tips"',       desc: 'Generic advice that has nothing to do with your resume or target role.' },
+  { icon: '💻', title: 'Random LeetCode grind',         desc: 'Practise problems that may never come up in your actual interview.' },
+  { icon: '📺', title: 'Watch YouTube tutorials',       desc: 'Passive learning — no feedback on whether you actually got it.' },
+  { icon: '🤞', title: 'Walk in and hope for the best', desc: 'No idea if you\'re ready. Nerves kick in. Performance drops by half.' },
+]
+
+const NEW_WAY = [
+  { icon: '📄', title: 'Upload your resume',             desc: 'AI reads your actual skills, experience level, and gaps — in seconds.' },
+  { icon: '🎯', title: 'Matched to 23 real vacancies',   desc: 'See which jobs you qualify for today and which ones need more prep.' },
+  { icon: '💬', title: 'Questions built around your gaps', desc: 'Not a generic list — targeted practice on exactly what that role needs.' },
+  { icon: '✅', title: 'Walk in with a readiness score',  desc: '87% ready. A verdict based on your answers, not a gut feeling.' },
 ]
 
 // Journey dots — shows the multi-attempt progression
@@ -420,97 +423,91 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Comparison table ─────────────────────────────────────────────────── */}
+      {/* ── How it's different ───────────────────────────────────────────────── */}
       <section className="space-y-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>How it compares</p>
+          <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>How it&apos;s different</p>
           <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-            Not just practice problems.
+            The problem with how everyone preps.
           </h2>
           <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-            LeetCode tells you if your code runs. We tell you if you&apos;re ready for the <em>job</em> — matched to a real vacancy, scored on your actual answers.
+            Generic practice doesn&apos;t prepare you for your specific interview. Here&apos;s what changes.
           </p>
         </div>
 
-        {/* overflow-x-auto lets mobile scroll horizontally; min-w prevents column collapse */}
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm" style={{ minWidth: '520px', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border)' }}>
-                  <th
-                    className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest"
-                    style={{ color: 'var(--text-muted)', width: '46%' }}
-                  >
-                    Feature
-                  </th>
-                  {/* TNI column — highlighted */}
-                  <th
-                    className="text-center px-4 py-3 text-xs font-semibold uppercase tracking-widest"
-                    style={{
-                      color: 'var(--accent)',
-                      width: '18%',
-                      background: 'var(--accent-soft)',
-                      borderLeft: '1px solid var(--accent-border)',
-                      borderRight: '1px solid var(--accent-border)',
-                    }}
-                  >
-                    The Next<br />Interview
-                  </th>
-                  <th
-                    className="text-center px-4 py-3 text-xs font-semibold uppercase tracking-widest"
-                    style={{ color: 'var(--text-muted)', width: '18%' }}
-                  >
-                    LeetCode
-                  </th>
-                  <th
-                    className="text-center px-4 py-3 text-xs font-semibold uppercase tracking-widest"
-                    style={{ color: 'var(--text-muted)', width: '18%' }}
-                  >
-                    Blind
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {COMPARISON.map((row, i) => (
-                  <tr
-                    key={row.feature}
-                    style={{
-                      background: i % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-base)',
-                      borderBottom: i < COMPARISON.length - 1 ? '1px solid var(--border)' : 'none',
-                    }}
-                  >
-                    <td className="px-5 py-3" style={{ color: 'var(--text-secondary)' }}>{row.feature}</td>
-                    {/* TNI — always ✓, highlighted column */}
-                    <td
-                      className="text-center px-4 py-3"
-                      style={{
-                        background: i % 2 === 0
-                          ? 'rgba(139,92,246,0.06)'
-                          : 'rgba(139,92,246,0.04)',
-                        borderLeft: '1px solid var(--accent-border)',
-                        borderRight: '1px solid var(--accent-border)',
-                      }}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          {/* ── Before ── */}
+          <div
+            className="rounded-2xl p-6 space-y-5"
+            style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+          >
+            <div className="flex items-center gap-2.5">
+              <div
+                className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171' }}
+              >
+                ✕
+              </div>
+              <span className="font-semibold text-sm" style={{ color: 'var(--text-muted)' }}>The usual prep journey</span>
+            </div>
+
+            <div className="space-y-4">
+              {OLD_WAY.map((item, i) => (
+                <div key={i} className="flex gap-3 items-start">
+                  <span className="text-lg flex-shrink-0 opacity-40">{item.icon}</span>
+                  <div>
+                    <div
+                      className="text-sm font-medium"
+                      style={{ color: 'var(--text-muted)', textDecoration: 'line-through', textDecorationColor: 'rgba(239,68,68,0.4)' }}
                     >
-                      {row.tni
-                        ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold" style={{ background: 'rgba(52,211,153,0.12)', color: '#34d399' }}>✓</span>
-                        : <span style={{ color: 'var(--text-muted)' }}>—</span>}
-                    </td>
-                    <td className="text-center px-4 py-3">
-                      {row.leet
-                        ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold" style={{ background: 'rgba(52,211,153,0.12)', color: '#34d399' }}>✓</span>
-                        : <span style={{ color: 'var(--text-muted)' }}>—</span>}
-                    </td>
-                    <td className="text-center px-4 py-3">
-                      {row.blind
-                        ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold" style={{ background: 'rgba(52,211,153,0.12)', color: '#34d399' }}>✓</span>
-                        : <span style={{ color: 'var(--text-muted)' }}>—</span>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      {item.title}
+                    </div>
+                    <div className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                      {item.desc}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
+
+          {/* ── After ── */}
+          <div
+            className="rounded-2xl p-6 space-y-5"
+            style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--accent-border)',
+              borderLeft: '3px solid var(--accent)',
+            }}
+          >
+            <div className="flex items-center gap-2.5">
+              <div
+                className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}
+              >
+                ✓
+              </div>
+              <span className="font-semibold text-sm" style={{ color: 'var(--accent)' }}>The Next Interview</span>
+            </div>
+
+            <div className="space-y-4">
+              {NEW_WAY.map((item, i) => (
+                <div key={i} className="flex gap-3 items-start">
+                  <span className="text-lg flex-shrink-0">{item.icon}</span>
+                  <div>
+                    <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                      {item.title}
+                    </div>
+                    <div className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                      {item.desc}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
         </div>
       </section>
 
