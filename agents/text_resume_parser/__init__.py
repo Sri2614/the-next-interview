@@ -13,7 +13,7 @@ from google.genai.types import GenerateContentConfig, ThinkingConfig
 text_resume_parser = LlmAgent(
     name="text_resume_parser",
     model="gemini-2.5-flash",
-    config=GenerateContentConfig(
+    generate_content_config=GenerateContentConfig(
         thinking_config=ThinkingConfig(thinking_budget=0)
     ),
     description="Parses plain CV/resume text into a structured MockResume JSON.",
