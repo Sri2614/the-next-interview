@@ -35,7 +35,10 @@ def _extract_with_document_ai(pdf_base64: str, project_id: str, processor_id: st
         from google.cloud import documentai  # type: ignore
         from google.api_core.client_options import ClientOptions  # type: ignore
 
-        location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us")
+        # Document AI regions are "us" / "eu" / "asia" — NOT "us-central1".
+        # GOOGLE_CLOUD_LOCATION is for Vertex AI (us-central1) and must NOT be
+        # reused here.  Use a separate DOCUMENT_AI_LOCATION env var instead.
+        location = os.environ.get("DOCUMENT_AI_LOCATION", "us")
         processor_name = (
             f"projects/{project_id}/locations/{location}/processors/{processor_id}"
         )
