@@ -15,7 +15,7 @@
 
 ## What It Does
 
-A candidate uploads (or picks) a resume. The platform matches it against 23 real vacancies, generates a personalised 15-question mock interview and a coding challenge for the chosen role, evaluates the candidate's answers with AI feedback, and produces a scored readiness report with a study plan and course recommendations.
+A candidate uploads (or picks) a resume. The platform matches it against live job listings (fetched via **RapidAPI JSearch**, falling back to 23 curated mock vacancies), generates a personalised 15-question mock interview and a coding challenge for the chosen role, evaluates the candidate's answers with AI feedback, and produces a scored readiness report with a study plan and course recommendations.
 
 ```
  ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
@@ -37,7 +37,7 @@ A candidate uploads (or picks) a resume. The platform matches it against 23 real
 - Session ID returned → drives all downstream routes
 
 ### ✅ Step 2 — Job Match (`/match/[resumeId]`)
-- **23 vacancies scored** against the candidate's profile by `vacancy_matcher`
+- **Live vacancies fetched via RapidAPI JSearch** and scored against the candidate's profile by `vacancy_matcher` — falls back to 23 curated mock vacancies if the API key is not set
 - Each vacancy gets a **match % and fit level** (`strong_fit / good_fit / partial_fit / mismatch`)
 - Per-card skill gap badges — shows exactly what's missing
 - **Filter tabs**: All · Strong Fit · Good Fit · Partial Fit
@@ -86,38 +86,64 @@ A candidate uploads (or picks) a resume. The platform matches it against 23 real
 
 ## Architecture
 
-```
-Browser
-  │
-  │  HTTPS  (Next.js App Router — Server & Client components)
-  ▼
-┌──────────────────────────────────────────────────────────────────┐
-│  Frontend  ·  Next.js 14  ·  Cloud Run                          │
-│  https://the-next-interview-frontend-...us-central1.run.app      │
-└──────────────────────────────────────────────────────────────────┘
-  │
-  │  POST /apps/<agent>/users/<uid>/sessions/<sid>/run
-  ▼
-┌──────────────────────────────────────────────────────────────────┐
-│  ADK API Server  ·  Python  ·  Cloud Run                        │
-│  https://the-next-interview-agents-...us-central1.run.app        │
-│                                                                  │
-│  ├── resume_parser          LlmAgent                            │
-│  ├── vacancy_matcher        LlmAgent                            │
-│  ├── question_generator  ┐  ParallelAgent                       │
-│  ├── code_challenge      ┘                                      │
-│  ├── answer_evaluator       LlmAgent                            │
-│  ├── readiness_assessor  ┐  SequentialAgent                     │
-│  └── recommendation_agent┘                                      │
-└──────────────────────────────────────────────────────────────────┘
-  │
-  ├──────────────────────┐
-  ▼                      ▼
-Gemini 2.5 Flash     Google Document AI
-(Vertex AI)          (us-central1 · PDF OCR)
+### User Journey → Agent Mapping
+
+```mermaid
+flowchart TD
+    subgraph browser["🌐 Browser · Next.js 14 · Cloud Run"]
+        s1["1️⃣  /resume\nUpload PDF or pick mock profile"]
+        s2["2️⃣  /match/resumeId\nScore vacancies · filter by fit level"]
+        s3["3️⃣  /prep/vacancyId\nQuestions tab  +  Challenge tab"]
+        s4["4️⃣  /assessment/sessionId\nAnswer 15 questions one-by-one"]
+        s5["5️⃣  /report/sessionId\nReadiness score · study plan · courses"]
+        ls[("localStorage\nPrepSession · AssessmentSession\n7-day TTL")]
+
+        s1 --> s2 --> s3 --> s4 --> s5
+        s2 & s3 & s4 & s5 <-.->|"cache / restore"| ls
+    end
+
+    subgraph adk["☁️ ADK API Server · Python · Cloud Run"]
+        ag1["resume_parser\n〈LlmAgent〉"]
+        ag2["vacancy_matcher\n〈LlmAgent〉\nloads vacancies from data/ + RapidAPI JSearch"]
+        subgraph pa["〈ParallelAgent〉  — runs both concurrently"]
+            ag3a["question_generator"]
+            ag3b["code_challenge"]
+        end
+        ag4["answer_evaluator\n〈LlmAgent〉"]
+        subgraph sa["〈SequentialAgent〉  — chained"]
+            ag5a["readiness_assessor"]
+            ag5b["recommendation_agent"]
+        end
+    end
+
+    subgraph gcp["☁️ Google Cloud / External"]
+        gem[("Gemini 2.5 Flash\nVertex AI\nthinking_budget=0")]
+        dai["Document AI\nPDF OCR · us-central1"]
+        rapid["RapidAPI JSearch\nLive job listings\n(fallback → mock vacancies)"]
+    end
+
+    s1 -->|"POST /run_sse"| ag1
+    s2 -->|"POST /run_sse"| ag2
+    s3 -->|"POST /run_sse"| pa
+    s4 -->|"POST /run_sse"| ag4
+    s5 -->|"POST /run_sse"| sa
+
+    ag1 -->|"OCR text extraction"| dai
+    ag2 -->|"fetch live jobs"| rapid
+    adk <-->|"Gemini API calls"| gem
 ```
 
-Each agent is called **independently by the frontend** — they are not wired into a server-side sequential pipeline at runtime. The frontend orchestrates the order and carries state between steps via localStorage.
+### Key Design Decisions
+
+| Decision | Why |
+|---|---|
+| **Frontend orchestrates agents** | Each agent is called independently by the browser — no server-side pipeline at runtime. The frontend carries state between steps via localStorage. |
+| **ParallelAgent for Prep step** | `question_generator` and `code_challenge` run concurrently — halves wait time vs sequential |
+| **SequentialAgent for Report step** | `recommendation_agent` needs `readiness_assessor`'s output — ADK session state passes it automatically |
+| **`thinking_budget=0`** | Disables Gemini extended thinking — cuts latency from 60–180 s → 5–20 s per agent with no quality loss on structured JSON tasks |
+| **Document AI for OCR** | PDF is never passed through the LLM — only the extracted text is. Prevents token overload and data leakage. |
+| **RapidAPI JSearch** | Fetches real live vacancies at match time; falls back to bundled mock vacancies if API key is not set or request fails |
+| **Cold-start warmup** | Frontend sends a silent ping to the ADK service on page load to pre-warm the Cloud Run container before the user clicks Generate |
 
 ---
 
