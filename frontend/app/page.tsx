@@ -58,13 +58,21 @@ const DASHOFFSET = CIRCUM * (1 - SCORE_PCT / 100)
 
 export default function HomePage() {
   return (
-    <div className="space-y-28">
+    <div className="space-y-14">
 
       {/* ── Hero ──────────────────────────────────────────────────────────────── */}
-      <section className="pt-16 grid grid-cols-1 lg:grid-cols-2 gap-14 items-center">
+      {/* Give the hero its own card background so it pops in both themes */}
+      <section
+        className="rounded-3xl px-6 sm:px-10 pt-10 pb-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center"
+        style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-hover)',
+          boxShadow: '0 2px 24px rgba(0,0,0,0.06)',
+        }}
+      >
 
         {/* Left */}
-        <div className="space-y-7">
+        <div className="space-y-6">
           <div
             className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-medium"
             style={{ background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}
@@ -78,13 +86,18 @@ export default function HomePage() {
             <span>you&apos;re ready.</span>
           </h1>
 
-          {/* Animated readiness journey */}
-          <div className="space-y-2 py-1">
+          <p className="text-lg leading-relaxed max-w-lg" style={{ color: 'var(--text-secondary)' }}>
+            Upload your resume, match against 23 real vacancies, practice with AI-tailored questions,
+            and get an honest readiness verdict — all in under 5 minutes.
+          </p>
+
+          {/* Animated readiness bar */}
+          <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs" style={{ color: 'var(--text-muted)' }}>
-              <span>Your readiness</span>
+              <span>Your readiness after 3 attempts</span>
               <span className="font-semibold" style={{ color: '#34d399' }}>87% — Ready ✓</span>
             </div>
-            <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+            <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
               <div
                 className="grow-bar h-full rounded-full"
                 style={{ background: 'linear-gradient(90deg, var(--accent), #34d399)', width: '45%' }}
@@ -95,34 +108,41 @@ export default function HomePage() {
             </p>
           </div>
 
-          <p className="text-lg leading-relaxed max-w-lg" style={{ color: 'var(--text-secondary)' }}>
-            Upload your resume, match against 23 real vacancies, practice with AI-tailored questions,
-            and get an honest readiness verdict — all in under 5 minutes.
-          </p>
-
           {/* Dual CTAs */}
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap pt-1">
             <Link href="/resume" className="btn-accent px-8 py-3.5 rounded-xl text-white font-semibold">
               Get Started Free →
             </Link>
             <Link
-              href="/match/sarah-chen-demo"
+              href="/match/fullstack-react-4yr"
               className="px-6 py-3.5 rounded-xl text-sm font-semibold transition-colors"
-              style={{ background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+              style={{ background: 'var(--bg-elevated)', color: 'var(--text-primary)', border: '1px solid var(--border-hover)' }}
             >
-              See Example Report ↗
+              See Demo Match ↗
             </Link>
+          </div>
+
+          {/* Quick trust stats */}
+          <div className="flex flex-wrap gap-4 text-xs pt-1" style={{ color: 'var(--text-muted)' }}>
+            <span>🔓 No sign-up</span>
+            <span>·</span>
+            <span>⏱️ ~60 seconds</span>
+            <span>·</span>
+            <span>💼 23 vacancies</span>
+            <span>·</span>
+            <span>🔁 Retake free</span>
           </div>
         </div>
 
         {/* Right — floating mock readiness card */}
         <div className="float-anim hidden lg:flex justify-center">
+          {/* Use --bg-elevated so card is visible in BOTH light & dark */}
           <div
             className="w-full max-w-sm rounded-2xl p-6 space-y-5"
             style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border)',
-              boxShadow: '0 0 60px rgba(139,92,246,0.12), 0 24px 60px rgba(0,0,0,0.3)',
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border-hover)',
+              boxShadow: '0 0 40px rgba(139,92,246,0.18), 0 16px 40px rgba(0,0,0,0.12)',
             }}
           >
             <div className="flex items-center justify-between">
@@ -140,7 +160,7 @@ export default function HomePage() {
             {/* Score ring */}
             <div className="flex flex-col items-center">
               <svg width="120" height="120" viewBox="0 0 130 130" className="-rotate-90">
-                <circle cx="65" cy="65" r="54" fill="none" stroke="rgba(139,92,246,0.10)" strokeWidth="10" />
+                <circle cx="65" cy="65" r="54" fill="none" stroke="rgba(139,92,246,0.12)" strokeWidth="10" />
                 <circle
                   cx="65" cy="65" r="54" fill="none"
                   stroke="#8b5cf6" strokeWidth="10" strokeLinecap="round"
@@ -157,7 +177,7 @@ export default function HomePage() {
               <div style={{ marginTop: '58px' }} />
             </div>
 
-            {/* Score bars */}
+            {/* Score bars — use bg-card for track so it contrasts against bg-elevated */}
             <div className="space-y-3">
               {MOCK_BARS.map(b => (
                 <div key={b.label} className="space-y-1">
@@ -165,7 +185,7 @@ export default function HomePage() {
                     <span style={{ color: 'var(--text-secondary)' }}>{b.label}</span>
                     <span className="font-medium tabular-nums" style={{ color: b.color }}>{b.pct}%</span>
                   </div>
-                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-base)' }}>
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-card)' }}>
                     <div className="h-full rounded-full" style={{ width: `${b.pct}%`, background: b.color }} />
                   </div>
                 </div>
@@ -187,7 +207,7 @@ export default function HomePage() {
                         className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
                         style={j.done
                           ? { background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.35)' }
-                          : { background: 'var(--bg-base)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
+                          : { background: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
                         }
                       >
                         {j.score}%
@@ -204,21 +224,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* ── Trust strip ───────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-center gap-6 text-sm" style={{ color: 'var(--text-muted)' }}>
-        {[
-          { icon: '⏱️', text: '~60 seconds to first results' },
-          { icon: '🔓', text: 'No sign-up required' },
-          { icon: '💼', text: '23 real vacancies' },
-          { icon: '🔁', text: 'Retake anytime — free' },
-        ].map(item => (
-          <div key={item.text} className="flex items-center gap-2">
-            <span>{item.icon}</span>
-            <span>{item.text}</span>
-          </div>
-        ))}
-      </div>
 
       {/* ── Mock vacancy results ──────────────────────────────────────────────── */}
       <section className="space-y-6">
@@ -260,7 +265,7 @@ export default function HomePage() {
                   </span>
                 ))}
               </div>
-              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-base)' }}>
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-elevated)' }}>
                 <div className="h-full rounded-full" style={{ width: `${v.score}%`, background: v.color }} />
               </div>
             </div>
