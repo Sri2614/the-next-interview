@@ -19,7 +19,7 @@ steps:
       - |
         AGENTS_URL=$(cat /workspace/agents_url.txt)
         docker build \
-          -f frontend/Dockerfile.frontend \
+          -f Dockerfile.frontend \
           --build-arg NEXT_PUBLIC_ADK_URL=$$AGENTS_URL \
           -t us-central1-docker.pkg.dev/thesimplifiedtech/the-next-interview/frontend:latest \
           .
