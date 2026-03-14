@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { saveCustomResume } from '@/lib/session'
 import { collectSSEEvents } from '@/lib/adk-client'
@@ -8,21 +8,42 @@ import type { MockResume } from '@/types/resume'
 
 type ParseState = 'idle' | 'parsing' | 'done' | 'error'
 
+const TEXT_PARSE_STEPS = [
+  { label: 'Analysing your text',        sub: 'Reading through your CV content…' },
+  { label: 'Identifying your skills',    sub: 'Languages, frameworks, tools, cloud…' },
+  { label: 'Analysing your experience',  sub: 'Roles, timelines, accomplishments…' },
+  { label: 'Structuring your profile',   sub: 'Building your interview-ready profile…' },
+]
+
 export default function TextResumeInput() {
   const router = useRouter()
   const [text, setText] = useState('')
   const [state, setState] = useState<ParseState>('idle')
   const [error, setError] = useState<string | null>(null)
   const [parsedResume, setParsedResume] = useState<MockResume | null>(null)
+  const [parseStep, setParseStep] = useState(0)
 
   const charCount = text.length
   const isEmpty = charCount === 0
+
+  // Advance through progress steps while parsing
+  useEffect(() => {
+    if (state !== 'parsing') {
+      setParseStep(0)
+      return
+    }
+    const id = setInterval(() => {
+      setParseStep(prev => (prev < TEXT_PARSE_STEPS.length - 1 ? prev + 1 : prev))
+    }, 2500)
+    return () => clearInterval(id)
+  }, [state])
 
   async function handleParse() {
     if (isEmpty) return
 
     setState('parsing')
     setError(null)
+    setParseStep(0)
 
     const ADK_URL = process.env.NEXT_PUBLIC_ADK_URL || 'https://the-next-interview-agents-379802788252.us-central1.run.app'
     const APP = 'text_resume_parser'
@@ -30,14 +51,12 @@ export default function TextResumeInput() {
     const sessionId = `text-parse-${Date.now()}`
 
     try {
-      // Create session
       await fetch(`${ADK_URL}/apps/${APP}/users/${userId}/sessions/${sessionId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
       })
 
-      // Call agent via SSE
       const events = await collectSSEEvents(`${ADK_URL}/run_sse`, {
         appName: APP,
         userId,
@@ -48,14 +67,13 @@ export default function TextResumeInput() {
         },
       })
 
-      // Find the parser event
       const parserEvent = [...events].reverse().find(
         (e) => e.author === 'text_resume_parser'
       )
 
       let resume: MockResume | null = null
 
-      // Parse stateDelta.parsed_resume (triple-fallback pattern)
+      // Triple-fallback: stateDelta → parsed JSON string → regex extract
       const rawData = parserEvent?.actions?.stateDelta?.parsed_resume
       if (rawData !== undefined && rawData !== null) {
         if (typeof rawData === 'object' && 'name' in rawData) {
@@ -72,7 +90,6 @@ export default function TextResumeInput() {
         }
       }
 
-      // Fallback: content.parts text
       if (!resume) {
         const textContent: string =
           parserEvent?.content?.parts?.findLast?.((p: { text?: string }) => p.text)?.text ?? ''
@@ -87,11 +104,9 @@ export default function TextResumeInput() {
         }
       }
 
-      if (!resume?.name) throw new Error('Could not parse resume — please check your text and try again')
+      if (!resume?.name) throw new Error('Could not parse your CV — please check your text and try again')
 
-      // Ensure id is 'custom'
       resume.id = 'custom'
-
       saveCustomResume(resume)
       setParsedResume(resume)
       setState('done')
@@ -101,7 +116,7 @@ export default function TextResumeInput() {
     }
   }
 
-  // ── Success state ─────────────────────────────────────────────────────────
+  // ── Success ────────────────────────────────────────────────────────────────
   if (state === 'done' && parsedResume) {
     const allSkills = [
       ...parsedResume.skills.languages,
@@ -169,7 +184,84 @@ export default function TextResumeInput() {
     )
   }
 
-  // ── Input state ───────────────────────────────────────────────────────────
+  // ── Parsing progress ───────────────────────────────────────────────────────
+  if (state === 'parsing') {
+    return (
+      <div
+        className="rounded-2xl p-6 space-y-5"
+        style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <div
+            className="w-8 h-8 border-2 rounded-full animate-spin flex-shrink-0"
+            style={{ borderColor: 'var(--accent-border)', borderTopColor: 'var(--accent)' }}
+          />
+          <div>
+            <div className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
+              Gemini is reading your CV…
+            </div>
+            <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              This usually takes 10–20 seconds
+            </div>
+          </div>
+        </div>
+
+        {/* Step list */}
+        <div className="space-y-3">
+          {TEXT_PARSE_STEPS.map((step, i) => {
+            const isDone    = i < parseStep
+            const isCurrent = i === parseStep
+            return (
+              <div key={i} className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-5 h-5 mt-0.5 flex items-center justify-center">
+                  {isDone ? (
+                    <svg viewBox="0 0 16 16" className="w-5 h-5" fill="none">
+                      <circle cx="8" cy="8" r="7" fill="var(--accent-soft)" stroke="var(--accent)" strokeWidth="1.2"/>
+                      <path d="M5 8l2 2 4-4" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  ) : isCurrent ? (
+                    <div
+                      className="w-4 h-4 border-2 rounded-full animate-spin"
+                      style={{ borderColor: 'var(--accent-border)', borderTopColor: 'var(--accent)' }}
+                    />
+                  ) : (
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ background: 'var(--bg-elevated)', border: '1.5px solid var(--border)' }}
+                    />
+                  )}
+                </div>
+                <div>
+                  <div
+                    className="text-sm font-medium leading-tight"
+                    style={{ color: isDone ? 'var(--text-secondary)' : isCurrent ? 'var(--text-primary)' : 'var(--text-muted)' }}
+                  >
+                    {step.label}
+                  </div>
+                  {isCurrent && (
+                    <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                      {step.sub}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Privacy note */}
+        <div
+          className="rounded-lg px-3 py-2 text-xs"
+          style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+        >
+          🔒 Your text is sent directly to the AI — it&apos;s never stored on our servers.
+        </div>
+      </div>
+    )
+  }
+
+  // ── Input state ────────────────────────────────────────────────────────────
   return (
     <div className="space-y-3">
       {/* Tip */}
@@ -186,9 +278,8 @@ export default function TextResumeInput() {
           value={text}
           onChange={e => setText(e.target.value)}
           placeholder="Paste your LinkedIn profile, CV, or resume text here…"
-          disabled={state === 'parsing'}
           rows={10}
-          className="w-full rounded-2xl px-5 py-4 text-sm resize-y outline-none transition-colors disabled:opacity-60"
+          className="w-full rounded-2xl px-5 py-4 text-sm resize-y outline-none transition-colors"
           style={{
             minHeight: '220px',
             background: 'var(--bg-card)',
@@ -208,30 +299,25 @@ export default function TextResumeInput() {
       {/* Error */}
       {(state === 'error' || error) && (
         <div
-          className="rounded-xl px-4 py-3 text-sm"
-          style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--error)', border: '1px solid rgba(239,68,68,0.3)' }}
+          className="rounded-xl px-4 py-3 space-y-1.5"
+          style={{ background: 'rgba(239,68,68,0.08)', color: 'var(--error)', border: '1px solid rgba(239,68,68,0.3)' }}
         >
-          {error}
+          <div className="font-medium text-sm">⚠️ {error}</div>
+          <div className="text-xs opacity-80">
+            Try pasting more of your CV text, or make sure it includes your name, role, and skills.
+            You can also try the &quot;Upload PDF&quot; tab instead.
+          </div>
         </div>
       )}
 
-      {/* Submit button */}
+      {/* Submit */}
       <button
         onClick={handleParse}
-        disabled={isEmpty || state === 'parsing'}
+        disabled={isEmpty}
         className="w-full py-3.5 rounded-xl text-white font-semibold transition-all disabled:opacity-50"
         style={{ background: 'var(--accent)' }}
       >
-        {state === 'parsing' ? (
-          <span className="flex items-center justify-center gap-2">
-            <span
-              className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block"
-            />
-            Parsing with AI…
-          </span>
-        ) : (
-          'Parse with AI →'
-        )}
+        Parse with AI →
       </button>
     </div>
   )

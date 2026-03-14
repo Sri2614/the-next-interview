@@ -1,12 +1,19 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import type { MockResume } from '@/types/resume'
 import { saveCustomResume } from '@/lib/session'
 import { collectSSEEvents } from '@/lib/adk-client'
 
 type UploadState = 'idle' | 'reading' | 'parsing' | 'done' | 'error'
+
+const PDF_PARSE_STEPS = [
+  { label: 'Extracting text with Document AI', sub: 'Processing PDF layout and structure…' },
+  { label: 'Identifying your skills',          sub: 'Languages, frameworks, tools, cloud…' },
+  { label: 'Analysing your experience',        sub: 'Roles, timelines, accomplishments…' },
+  { label: 'Structuring your profile',         sub: 'Building your interview-ready profile…' },
+]
 
 export default function ResumeUpload() {
   const router = useRouter()
@@ -15,6 +22,19 @@ export default function ResumeUpload() {
   const [error, setError] = useState<string | null>(null)
   const [parsedResume, setParsedResume] = useState<MockResume | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [parseStep, setParseStep] = useState(0)
+
+  // Advance through progress steps while parsing
+  useEffect(() => {
+    if (state !== 'parsing') {
+      setParseStep(0)
+      return
+    }
+    const id = setInterval(() => {
+      setParseStep(prev => (prev < PDF_PARSE_STEPS.length - 1 ? prev + 1 : prev))
+    }, 2800)
+    return () => clearInterval(id)
+  }, [state])
 
   async function handleFile(file: File) {
     if (!file.name.endsWith('.pdf')) {
@@ -22,7 +42,6 @@ export default function ResumeUpload() {
       return
     }
 
-    // 10 MB limit (base64 encoding adds ~33% overhead, Document AI limit is 20 MB)
     const MAX_MB = 10
     if (file.size > MAX_MB * 1024 * 1024) {
       setError(`File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum size is ${MAX_MB} MB.`)
@@ -31,6 +50,7 @@ export default function ResumeUpload() {
 
     setState('reading')
     setError(null)
+    setParseStep(0)
 
     try {
       // Step 1: Read file as base64
@@ -44,15 +64,12 @@ export default function ResumeUpload() {
       const userId = 'user-1'
       const sessionId = `resume-parse-${Date.now()}`
 
-      // Create session — store base64 in state so agent tool can read it directly
-      // (never pass large binary strings through LLM message text)
       await fetch(`${ADK_URL}/apps/${APP}/users/${userId}/sessions/${sessionId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pdf_base64: base64 }),
       })
 
-      // Send simple trigger message — agent reads PDF from session state
       const events = await collectSSEEvents(`${ADK_URL}/run_sse`, {
         appName: APP,
         userId,
@@ -63,14 +80,12 @@ export default function ResumeUpload() {
         },
       })
 
-      // Find the resume_parser event
       const parserEvent = [...events].reverse().find(
         (e: { author?: string }) => e.author === 'resume_parser'
       )
 
       let resume: MockResume | null = null
 
-      // Parse stateDelta.parsed_resume
       const rawData = parserEvent?.actions?.stateDelta?.parsed_resume
       if (rawData !== undefined && rawData !== null) {
         if (typeof rawData === 'object' && 'name' in rawData) {
@@ -87,7 +102,6 @@ export default function ResumeUpload() {
         }
       }
 
-      // Fallback to content.parts text
       if (!resume) {
         const text: string =
           parserEvent?.content?.parts?.findLast((p: { text?: string }) => p.text)?.text ?? ''
@@ -104,9 +118,7 @@ export default function ResumeUpload() {
 
       if (!resume?.name) throw new Error('Could not parse resume — please try again')
 
-      // Ensure id is 'custom'
       resume.id = 'custom'
-
       saveCustomResume(resume)
       setParsedResume(resume)
       setState('done')
@@ -121,9 +133,7 @@ export default function ResumeUpload() {
       const reader = new FileReader()
       reader.onload = () => {
         const result = reader.result as string
-        // Remove the data:application/pdf;base64, prefix
-        const base64 = result.split(',')[1]
-        resolve(base64)
+        resolve(result.split(',')[1])
       }
       reader.onerror = reject
       reader.readAsDataURL(file)
@@ -139,6 +149,7 @@ export default function ResumeUpload() {
 
   const isLoading = state === 'reading' || state === 'parsing'
 
+  // ── Success ────────────────────────────────────────────────────────────────
   if (state === 'done' && parsedResume) {
     const allSkills = [
       ...parsedResume.skills.languages,
@@ -151,7 +162,6 @@ export default function ResumeUpload() {
         className="rounded-2xl p-5 space-y-4"
         style={{ background: 'var(--bg-card)', border: '1px solid var(--accent)', borderLeft: '3px solid var(--accent)' }}
       >
-        {/* Success header */}
         <div className="flex items-center gap-3">
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0"
@@ -161,11 +171,10 @@ export default function ResumeUpload() {
           </div>
           <div>
             <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Resume parsed successfully</div>
-            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Powered by Google Document AI + Gemini</div>
+            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Powered by Google Document AI + Gemini 2.5 Flash</div>
           </div>
         </div>
 
-        {/* Parsed profile preview */}
         <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--bg-base)' }}>
           <div>
             <div className="font-semibold text-lg" style={{ color: 'var(--text-primary)' }}>{parsedResume.name}</div>
@@ -206,14 +215,97 @@ export default function ResumeUpload() {
     )
   }
 
+  // ── Parsing progress ───────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <div
+        className="rounded-2xl p-6 space-y-5"
+        style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <div
+            className="w-8 h-8 border-2 rounded-full animate-spin flex-shrink-0"
+            style={{ borderColor: 'var(--accent-border)', borderTopColor: 'var(--accent)' }}
+          />
+          <div>
+            <div className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
+              {state === 'reading' ? 'Reading your PDF…' : 'Parsing with AI…'}
+            </div>
+            <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              {state === 'reading' ? 'Preparing file for Document AI' : 'This usually takes 10–20 seconds'}
+            </div>
+          </div>
+        </div>
+
+        {/* Step list — only visible during parsing */}
+        {state === 'parsing' && (
+          <div className="space-y-3">
+            {PDF_PARSE_STEPS.map((step, i) => {
+              const isDone    = i < parseStep
+              const isCurrent = i === parseStep
+              return (
+                <div key={i} className="flex items-start gap-3">
+                  {/* Icon */}
+                  <div className="flex-shrink-0 w-5 h-5 mt-0.5 flex items-center justify-center">
+                    {isDone ? (
+                      <svg viewBox="0 0 16 16" className="w-5 h-5" fill="none">
+                        <circle cx="8" cy="8" r="7" fill="var(--accent-soft)" stroke="var(--accent)" strokeWidth="1.2"/>
+                        <path d="M5 8l2 2 4-4" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    ) : isCurrent ? (
+                      <div
+                        className="w-4 h-4 border-2 rounded-full animate-spin"
+                        style={{ borderColor: 'var(--accent-border)', borderTopColor: 'var(--accent)' }}
+                      />
+                    ) : (
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ background: 'var(--bg-elevated)', border: '1.5px solid var(--border)' }}
+                      />
+                    )}
+                  </div>
+                  {/* Labels */}
+                  <div>
+                    <div
+                      className="text-sm font-medium leading-tight"
+                      style={{ color: isDone ? 'var(--text-secondary)' : isCurrent ? 'var(--text-primary)' : 'var(--text-muted)' }}
+                    >
+                      {step.label}
+                    </div>
+                    {isCurrent && (
+                      <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                        {step.sub}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Disclaimer */}
+        {state === 'parsing' && (
+          <div
+            className="rounded-lg px-3 py-2 text-xs"
+            style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+          >
+            🔒 Your PDF is processed in-memory and never stored on our servers.
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // ── Idle / error drop zone ─────────────────────────────────────────────────
   return (
     <div className="space-y-3">
-      {/* Drop zone */}
       <div
         onDragOver={e => { e.preventDefault(); setIsDragging(true) }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
-        onClick={() => !isLoading && inputRef.current?.click()}
+        onClick={() => inputRef.current?.click()}
         className="rounded-2xl p-8 text-center cursor-pointer transition-all"
         style={{
           background: isDragging ? 'var(--accent-soft)' : 'var(--bg-card)',
@@ -227,40 +319,29 @@ export default function ResumeUpload() {
           className="hidden"
           onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
         />
-
-        {isLoading ? (
-          <div className="space-y-3">
-            <div
-              className="w-8 h-8 border-2 rounded-full animate-spin mx-auto"
-              style={{ borderColor: 'var(--accent-border)', borderTopColor: 'var(--accent)' }}
-            />
-            <div className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
-              {state === 'reading' ? 'Reading PDF…' : 'Parsing with Document AI + Gemini…'}
-            </div>
+        <div className="space-y-2">
+          <div className="text-3xl">📄</div>
+          <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+            Drop your resume here
           </div>
-        ) : (
-          <div className="space-y-2">
-            <div className="text-3xl">📄</div>
-            <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>
-              Drop your resume here
-            </div>
-            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              or <span style={{ color: 'var(--accent)' }}>click to browse</span>
-            </div>
-            <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              PDF only · Max 10 MB · Parsed by Google Document AI
-            </div>
+          <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            or <span style={{ color: 'var(--accent)' }}>click to browse</span>
           </div>
-        )}
+          <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            PDF only · Max 10 MB · Parsed by Google Document AI
+          </div>
+        </div>
       </div>
 
-      {/* Error */}
       {(state === 'error' || error) && (
         <div
-          className="rounded-xl px-4 py-3 text-sm"
-          style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--error)', border: '1px solid rgba(239,68,68,0.3)' }}
+          className="rounded-xl px-4 py-3 space-y-1.5"
+          style={{ background: 'rgba(239,68,68,0.08)', color: 'var(--error)', border: '1px solid rgba(239,68,68,0.3)' }}
         >
-          {error}
+          <div className="font-medium text-sm">⚠️ {error}</div>
+          <div className="text-xs opacity-80">
+            Make sure your PDF is not password-protected and contains selectable text (not a scanned image). If the problem persists, try the &quot;Paste CV Text&quot; tab instead.
+          </div>
         </div>
       )}
     </div>
