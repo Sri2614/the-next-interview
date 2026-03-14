@@ -173,6 +173,13 @@ pre {
 }
 .btn-accent:active:not(:disabled) { transform: translateY(0); }
 
+/* ─── Animated progress bar (landing page hero journey) ─────────────────────── */
+@keyframes growBar {
+  from { width: 45%; }
+  to   { width: 87%; }
+}
+.grow-bar { animation: growBar 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
 /* ─── Floating card animation (landing page hero) ───────────────────────────── */
 @keyframes float {
   0%, 100% { transform: translateY(0px);  }

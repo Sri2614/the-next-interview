@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-/* ─── Mock data — renders the actual app UI as landing page content ─────────── */
+/* ─── Mock data ─────────────────────────────────────────────────────────────── */
 
 const MOCK_BARS = [
   { label: 'Skills Match', pct: 91, color: '#34d399' },
@@ -12,6 +12,13 @@ const MOCK_VACANCIES = [
   { title: 'Staff Engineer',      company: 'Stripe',  score: 87, color: '#34d399', badge: 'Strong Match',  skills: ['TypeScript','React','Node.js'] },
   { title: 'Senior Frontend Dev', company: 'Vercel',  score: 71, color: '#60a5fa', badge: 'Good Match',    skills: ['Next.js','CSS','Tailwind'] },
   { title: 'Lead React Engineer', company: 'Revolut', score: 48, color: '#fbbf24', badge: 'Stretch Role',  skills: ['React Native','GraphQL'] },
+]
+
+// Journey dots — shows the multi-attempt progression
+const JOURNEY = [
+  { score: 45, label: 'Attempt 1', done: false },
+  { score: 71, label: 'Attempt 2', done: false },
+  { score: 87, label: 'Attempt 3', done: true  },
 ]
 
 const AGENTS = [
@@ -27,19 +34,18 @@ const AGENTS = [
 
 const TECH = ['Google ADK', 'Gemini 2.5 Flash', 'Document AI', 'Next.js 14', 'TypeScript', 'Cloud Run', 'SSE Streaming']
 
-// SVG score ring: r=54, circumference=339.3
 const SCORE_PCT  = 87
 const CIRCUM     = 339.3
-const DASHOFFSET = CIRCUM * (1 - SCORE_PCT / 100)   // 44.1
+const DASHOFFSET = CIRCUM * (1 - SCORE_PCT / 100)
 
 export default function HomePage() {
   return (
-    <div className="space-y-32">
+    <div className="space-y-28">
 
-      {/* ── Hero ── split: text left · mock report card right ────────────────── */}
-      <section className="pt-16 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      {/* ── Hero ──────────────────────────────────────────────────────────────── */}
+      <section className="pt-16 grid grid-cols-1 lg:grid-cols-2 gap-14 items-center">
 
-        {/* Left — copy */}
+        {/* Left */}
         <div className="space-y-7">
           <div
             className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-medium"
@@ -51,54 +57,62 @@ export default function HomePage() {
           <h1 className="text-5xl sm:text-6xl font-bold leading-[1.1]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
             Stop guessing.<br />
             <span className="gradient-text">Know</span>{' '}
-            <span style={{ color: 'var(--text-primary)' }}>you&apos;re ready.</span>
+            <span>you&apos;re ready.</span>
           </h1>
 
+          {/* Animated readiness journey */}
+          <div className="space-y-2 py-1">
+            <div className="flex items-center justify-between text-xs" style={{ color: 'var(--text-muted)' }}>
+              <span>Your readiness</span>
+              <span className="font-semibold" style={{ color: '#34d399' }}>87% — Ready ✓</span>
+            </div>
+            <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+              <div
+                className="grow-bar h-full rounded-full"
+                style={{ background: 'linear-gradient(90deg, var(--accent), #34d399)', width: '45%' }}
+              />
+            </div>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              Retake as many times as you want — each attempt targets your new gaps.
+            </p>
+          </div>
+
           <p className="text-lg leading-relaxed max-w-lg" style={{ color: 'var(--text-secondary)' }}>
-            Upload your resume, match against 23 real vacancies, prep with AI-tailored questions,
+            Upload your resume, match against 23 real vacancies, practice with AI-tailored questions,
             and get an honest readiness verdict — all in under 5 minutes.
           </p>
 
-          {/* Inline stats */}
-          <div className="flex flex-wrap gap-6 py-2">
-            {[
-              { v: '23', l: 'vacancies' },
-              { v: '8',  l: 'AI agents' },
-              { v: '15', l: 'questions' },
-            ].map(s => (
-              <div key={s.l}>
-                <span className="text-2xl font-bold tabular-nums" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>{s.v}</span>
-                <span className="text-sm ml-1.5" style={{ color: 'var(--text-muted)' }}>{s.l}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-4 flex-wrap">
+          {/* Dual CTAs */}
+          <div className="flex items-center gap-3 flex-wrap">
             <Link href="/resume" className="btn-accent px-8 py-3.5 rounded-xl text-white font-semibold">
-              Start Preparing →
+              Get Started Free →
             </Link>
-            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>Free · No sign-in</span>
+            <Link
+              href="/match/sarah-chen-demo"
+              className="px-6 py-3.5 rounded-xl text-sm font-semibold transition-colors"
+              style={{ background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+            >
+              See Example Report ↗
+            </Link>
           </div>
         </div>
 
-        {/* Right — mock AI Readiness Report card */}
+        {/* Right — floating mock readiness card */}
         <div className="float-anim hidden lg:flex justify-center">
           <div
-            className="w-full max-w-sm rounded-2xl p-6 space-y-5 shadow-2xl"
+            className="w-full max-w-sm rounded-2xl p-6 space-y-5"
             style={{
               background: 'var(--bg-card)',
               border: '1px solid var(--border)',
               boxShadow: '0 0 60px rgba(139,92,246,0.12), 0 24px 60px rgba(0,0,0,0.3)',
             }}
           >
-            {/* Card header */}
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>AI Readiness Report</div>
                 <div className="font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>Sarah Chen</div>
                 <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Senior React Engineer</div>
               </div>
-              {/* Live dot */}
               <div className="flex items-center gap-1.5">
                 <div className="pulse-dot w-2 h-2 rounded-full" style={{ background: '#34d399' }} />
                 <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Live</span>
@@ -106,23 +120,23 @@ export default function HomePage() {
             </div>
 
             {/* Score ring */}
-            <div className="flex flex-col items-center gap-2">
-              <svg width="130" height="130" viewBox="0 0 130 130" className="-rotate-90">
+            <div className="flex flex-col items-center">
+              <svg width="120" height="120" viewBox="0 0 130 130" className="-rotate-90">
                 <circle cx="65" cy="65" r="54" fill="none" stroke="rgba(139,92,246,0.10)" strokeWidth="10" />
                 <circle
                   cx="65" cy="65" r="54" fill="none"
                   stroke="#8b5cf6" strokeWidth="10" strokeLinecap="round"
                   strokeDasharray={CIRCUM}
                   strokeDashoffset={DASHOFFSET}
-                  style={{'--target-offset': DASHOFFSET} as React.CSSProperties}
+                  style={{ '--target-offset': DASHOFFSET } as React.CSSProperties}
                   className="score-ring-progress"
                 />
               </svg>
-              <div className="-mt-[105px] flex flex-col items-center">
-                <span className="text-3xl font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>{SCORE_PCT}%</span>
+              <div style={{ marginTop: '-90px' }} className="flex flex-col items-center">
+                <span className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>{SCORE_PCT}%</span>
                 <span className="text-xs font-semibold mt-0.5" style={{ color: '#34d399' }}>Ready ✓</span>
               </div>
-              <div className="mt-[68px]" />
+              <div style={{ marginTop: '58px' }} />
             </div>
 
             {/* Score bars */}
@@ -140,26 +154,63 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* Improvement badge */}
-            <div className="flex items-center gap-2 rounded-xl px-3 py-2" style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.18)' }}>
-              <span style={{ color: '#34d399' }}>↑</span>
-              <span className="text-xs" style={{ color: '#34d399' }}>+12 pts vs your last attempt</span>
+            {/* Multi-attempt badge */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 rounded-xl px-3 py-2" style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.18)' }}>
+                <span style={{ color: '#34d399' }}>↑</span>
+                <span className="text-xs" style={{ color: '#34d399' }}>+12 pts vs your last attempt</span>
+              </div>
+              {/* Journey dots */}
+              <div className="flex items-center justify-between px-1">
+                {JOURNEY.map((j, i) => (
+                  <div key={j.label} className="flex items-center gap-0">
+                    <div className="flex flex-col items-center gap-1">
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
+                        style={j.done
+                          ? { background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.35)' }
+                          : { background: 'var(--bg-base)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
+                        }
+                      >
+                        {j.score}%
+                      </div>
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{j.label}</span>
+                    </div>
+                    {i < JOURNEY.length - 1 && (
+                      <div className="w-8 h-px mb-5 mx-1" style={{ background: 'var(--border)' }} />
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── Mock vacancy results — "This is what you'll see" ─────────────────── */}
+      {/* ── Trust strip ───────────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center justify-center gap-6 text-sm" style={{ color: 'var(--text-muted)' }}>
+        {[
+          { icon: '⏱️', text: '~60 seconds to first results' },
+          { icon: '🔓', text: 'No sign-up required' },
+          { icon: '💼', text: '23 real vacancies' },
+          { icon: '🔁', text: 'Retake anytime — free' },
+        ].map(item => (
+          <div key={item.text} className="flex items-center gap-2">
+            <span>{item.icon}</span>
+            <span>{item.text}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Mock vacancy results ──────────────────────────────────────────────── */}
       <section className="space-y-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
-            Example output
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Example output</p>
           <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-            AI scores every vacancy against your profile
+            See exactly where you stand — for every vacancy
           </h2>
           <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-            Real skill-gap breakdown. Not generic advice.
+            Not just a match percentage. Skill-by-skill breakdown, gaps highlighted, ranked by fit.
           </p>
         </div>
 
@@ -188,35 +239,37 @@ export default function HomePage() {
                 ))}
               </div>
               <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-base)' }}>
-                <div className="h-full rounded-full transition-all" style={{ width: `${v.score}%`, background: v.color }} />
+                <div className="h-full rounded-full" style={{ width: `${v.score}%`, background: v.color }} />
               </div>
             </div>
           ))}
         </div>
         <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
-          ↑ Actual output from the platform · 23 vacancies scored in ~30s
+          ↑ Actual platform output · All 23 vacancies scored in ~30s
         </p>
       </section>
 
-      {/* ── Bento — what makes it different ──────────────────────────────────── */}
+      {/* ── Outcomes bento ───────────────────────────────────────────────────── */}
       <section className="space-y-4">
         <div className="mb-8">
-          <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>What makes it different</p>
+          <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Why it works</p>
           <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Built for the real interview</h2>
         </div>
 
-        {/* Row 1: big card + two small */}
+        {/* Row 1 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Big card — mock Q&A */}
+          {/* Big card */}
           <div className="md:col-span-2 rounded-2xl p-6 space-y-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-            <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>No multiple choice</div>
-            <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
-              Write real answers. Get real feedback.
-            </h3>
-            {/* Mock Q&A */}
-            <div className="space-y-3 mt-2">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>Real feedback</p>
+              <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+                You&apos;ll know exactly where you stand — and why.
+              </h3>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Write in your own words. No multiple choice. The AI grades your actual reasoning.</p>
+            </div>
+            <div className="space-y-2.5">
               <div className="rounded-xl p-3 text-sm" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}>
-                <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>Q:</span>
+                <span className="font-semibold" style={{ color: 'var(--text-muted)' }}>Q:</span>
                 <span className="ml-2" style={{ color: 'var(--text-secondary)' }}>Explain how React&apos;s reconciliation algorithm works.</span>
               </div>
               <div className="rounded-xl p-3 text-sm" style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)' }}>
@@ -224,7 +277,7 @@ export default function HomePage() {
                 <span className="ml-2" style={{ color: 'var(--text-secondary)' }}>React uses a virtual DOM and diffing algorithm to minimize DOM updates...</span>
               </div>
               <div className="rounded-xl p-3 flex items-start gap-3" style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.18)' }}>
-                <span className="text-lg flex-shrink-0">✅</span>
+                <span className="text-base flex-shrink-0">✅</span>
                 <div>
                   <div className="text-xs font-semibold" style={{ color: '#34d399' }}>Excellent · 92/100</div>
                   <div className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>Strong explanation. Mention Fiber architecture for a perfect answer.</div>
@@ -233,32 +286,38 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Small card — coding challenge */}
+          {/* Small card */}
           <div className="rounded-2xl p-6 flex flex-col justify-between space-y-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
             <div>
-              <div className="text-2xl mb-3">💻</div>
-              <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Coding challenge + full solution</h3>
+              <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>Coding practice</p>
+              <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Problems you&apos;ll actually see in interviews.</h3>
               <p className="text-sm mt-2" style={{ color: 'var(--text-secondary)' }}>
-                Real task from your target industry. Step-by-step walkthrough with time & space complexity.
+                One real-world challenge from your target industry, with a full step-by-step solution and complexity walkthrough.
               </p>
             </div>
-            <div className="rounded-lg px-3 py-2 text-xs font-mono" style={{ background: 'var(--bg-base)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
-              O(n log n) · JavaScript · ~20 mins
+            <div
+              className="rounded-xl px-4 py-3 text-xs space-y-1"
+              style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', fontFamily: 'monospace' }}
+            >
+              <div style={{ color: 'var(--text-muted)' }}>// Two Sum · JavaScript</div>
+              <div style={{ color: '#60a5fa' }}>function twoSum(nums, target) {'{'}</div>
+              <div style={{ color: 'var(--text-secondary)', paddingLeft: '1rem' }}>const map = new Map()</div>
+              <div style={{ color: 'var(--text-muted)', paddingLeft: '1rem' }}>...</div>
+              <div style={{ color: '#60a5fa' }}>{'}'}  <span style={{ color: '#34d399' }}>// O(n) · O(n)</span></div>
             </div>
           </div>
         </div>
 
-        {/* Row 2: two medium cards */}
+        {/* Row 2 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Streaming */}
-          <div className="rounded-2xl p-6 space-y-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+          <div className="rounded-2xl p-6 space-y-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
             <div className="flex items-center gap-2">
               <div className="pulse-dot w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#34d399' }} />
-              <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Live streaming</span>
+              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Instant results</p>
             </div>
-            <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Results stream in real-time</h3>
+            <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Results in under 60 seconds.</h3>
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              All 8 agents run over SSE — no waiting for a 60-second HTTP timeout. Watch your report build as the AI thinks.
+              Agents stream results as they run — no spinner waiting for a wall-clock timeout. Watch your report build live.
             </p>
             <div className="rounded-xl p-3 text-xs font-mono space-y-1.5" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
               <div><span style={{ color: '#34d399' }}>✓</span> Scoring vacancy_1… 87%</div>
@@ -270,12 +329,11 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Gap analysis */}
-          <div className="rounded-2xl p-6 space-y-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-            <div className="text-2xl">🎯</div>
-            <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Questions target your exact gaps</h3>
+          <div className="rounded-2xl p-6 space-y-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Targeted prep</p>
+            <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Questions built around your gaps — not a generic list.</h3>
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              The Question Generator reads your skill gaps from the match results and probes the areas you&apos;re weakest in — not generic interview lists.
+              The AI reads your match results and probes the exact skills you&apos;re missing for that role.
             </p>
             <div className="flex flex-wrap gap-1.5">
               {['Kubernetes', 'gRPC', 'System Design'].map(s => (
@@ -283,51 +341,90 @@ export default function HomePage() {
                   ✕ gap: {s}
                 </span>
               ))}
+              <span className="text-xs px-2 py-0.5 rounded-full" style={{ color: 'var(--text-muted)', border: '1px solid var(--border)' }}>→ 15 questions generated</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── Agent pipeline ────────────────────────────────────────────────────── */}
-      <section className="rounded-2xl p-8 space-y-8" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-        <div className="text-center">
-          <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--text-muted)' }}>Architecture</p>
-          <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>8 specialized agents</h2>
-          <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>Each is a standalone Google ADK app · Orchestrated independently · Streamed via SSE</p>
+      {/* ── Keep going section ────────────────────────────────────────────────── */}
+      <section
+        className="rounded-2xl p-8 text-center space-y-6"
+        style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+      >
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--text-muted)' }}>The retake loop</p>
+          <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+            Keep going until you&apos;re ready.
+          </h2>
+          <p className="mt-2 text-sm max-w-lg mx-auto" style={{ color: 'var(--text-secondary)' }}>
+            Each attempt generates fresh questions targeting your latest weak areas.
+            Your score goes up. Your gaps shrink. You walk in confident.
+          </p>
         </div>
 
-        {/* Pipeline row with connecting line */}
-        <div className="relative overflow-x-auto">
-          <div className="flex items-center gap-0 min-w-max mx-auto" style={{ width: 'fit-content' }}>
-            {AGENTS.map((a, i) => (
-              <div key={a.name} className="flex items-center">
-                {/* Agent node */}
-                <div className="flex flex-col items-center gap-2 w-28">
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
-                    style={{ background: `${a.color}18`, color: a.color, border: `2px solid ${a.color}40` }}
-                  >
-                    {a.n}
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xs font-medium leading-tight" style={{ color: 'var(--text-primary)' }}>{a.name}</div>
-                  </div>
+        {/* Progress journey */}
+        <div className="flex items-center justify-center gap-0 flex-wrap">
+          {JOURNEY.map((j, i) => (
+            <div key={j.label} className="flex items-center">
+              <div className="flex flex-col items-center gap-2">
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold"
+                  style={j.done
+                    ? { background: 'rgba(52,211,153,0.12)', color: '#34d399', border: '2px solid rgba(52,211,153,0.35)' }
+                    : { background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }
+                  }
+                >
+                  {j.score}%
                 </div>
-                {/* Arrow connector */}
-                {i < AGENTS.length - 1 && (
-                  <div className="w-8 flex-shrink-0 flex items-center justify-center -mt-6">
-                    <div className="h-px w-full" style={{ background: 'var(--border)' }} />
-                    <span className="text-xs flex-shrink-0 -ml-1" style={{ color: 'var(--text-muted)' }}>›</span>
-                  </div>
-                )}
+                <span className="text-xs" style={{ color: j.done ? '#34d399' : 'var(--text-muted)' }}>
+                  {j.done ? `${j.label} ✓` : j.label}
+                </span>
               </div>
-            ))}
-          </div>
+              {i < JOURNEY.length - 1 && (
+                <div className="w-12 h-px mx-2 mb-5" style={{ background: 'var(--border)' }} />
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Main CTA ──────────────────────────────────────────────────────────── */}
+      <section
+        className="rounded-2xl p-10 text-center space-y-5"
+        style={{ background: 'linear-gradient(135deg, var(--accent-soft) 0%, var(--bg-card) 100%)', border: '1px solid var(--accent-border)' }}
+      >
+        <div className="text-4xl">🚀</div>
+        <h2 className="text-3xl font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Ready to prepare smarter?</h2>
+        <p className="text-sm max-w-md mx-auto" style={{ color: 'var(--text-secondary)' }}>
+          Upload your resume and get a full AI readiness report in under 5 minutes.
+        </p>
+        <div className="flex items-center justify-center gap-3 flex-wrap pt-1">
+          <Link href="/resume" className="btn-accent px-10 py-3.5 rounded-xl text-white font-semibold inline-block">
+            Get Started Free →
+          </Link>
+          <Link
+            href="/resume"
+            className="px-6 py-3.5 rounded-xl text-sm font-semibold"
+            style={{ background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+          >
+            See Demo Profiles ↗
+          </Link>
+        </div>
+        {/* Time strip */}
+        <div className="flex flex-wrap items-center justify-center gap-5 pt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+          <span>⏱️ ~60 seconds</span>
+          <span>·</span>
+          <span>🔓 No sign-up</span>
+          <span>·</span>
+          <span>💼 23 vacancies</span>
+          <span>·</span>
+          <span>🔁 Retake anytime</span>
         </div>
       </section>
 
       {/* ── Tech stack ────────────────────────────────────────────────────────── */}
-      <section className="text-center space-y-5">
+      <section className="text-center space-y-4">
         <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Built with</p>
         <div className="flex flex-wrap items-center justify-center gap-3">
           {TECH.map(t => (
@@ -338,25 +435,41 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── CTA ───────────────────────────────────────────────────────────────── */}
-      <section
-        className="rounded-2xl p-10 text-center pb-20 space-y-5"
-        style={{ background: 'linear-gradient(135deg, var(--accent-soft) 0%, var(--bg-card) 100%)', border: '1px solid var(--accent-border)' }}
-      >
-        <div className="text-4xl">🚀</div>
-        <h2 className="text-3xl font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Ready to prepare smarter?</h2>
-        <p className="text-sm max-w-md mx-auto" style={{ color: 'var(--text-secondary)' }}>
-          Upload your resume or paste your CV and get a full AI readiness report in under 5 minutes. No sign-in, no credit card.
-        </p>
-        <div className="flex items-center justify-center gap-4 flex-wrap pt-2">
-          <Link href="/resume" className="btn-accent px-10 py-3.5 rounded-xl text-white font-semibold inline-block">
-            Get Started Free →
-          </Link>
-          <Link href="/resume" className="px-6 py-3.5 rounded-xl text-sm font-medium" style={{ background: 'var(--bg-card)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
-            View Demo Profiles
-          </Link>
+      {/* ── Agent pipeline (technical deep dive — bottom) ─────────────────────── */}
+      <section className="rounded-2xl p-8 space-y-8 pb-20" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+        <div className="text-center">
+          <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--text-muted)' }}>For the technically curious</p>
+          <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>8-Agent AI Pipeline</h2>
+          <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+            Each agent is a standalone Google ADK app · Responses streamed via SSE · Zero gateway timeouts
+          </p>
         </div>
-        <p className="text-xs pt-1" style={{ color: 'var(--text-muted)' }}>23 vacancies · 8 AI agents · Results in ~60s</p>
+
+        <div className="relative overflow-x-auto pb-2">
+          <div className="flex items-start gap-0 min-w-max mx-auto" style={{ width: 'fit-content' }}>
+            {AGENTS.map((a, i) => (
+              <div key={a.name} className="flex items-center">
+                <div className="flex flex-col items-center gap-2 w-28">
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
+                    style={{ background: `${a.color}18`, color: a.color, border: `2px solid ${a.color}40` }}
+                  >
+                    {a.n}
+                  </div>
+                  <div className="text-xs font-medium text-center leading-tight" style={{ color: 'var(--text-secondary)' }}>
+                    {a.name}
+                  </div>
+                </div>
+                {i < AGENTS.length - 1 && (
+                  <div className="flex items-center mb-6 flex-shrink-0">
+                    <div className="w-4 h-px" style={{ background: 'var(--border)' }} />
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>›</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
     </div>
