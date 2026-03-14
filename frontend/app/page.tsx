@@ -77,18 +77,19 @@ export default function HomePage() {
             className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-medium"
             style={{ background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}
           >
-            ⚡ Powered by Google ADK + Gemini 2.5
+            🔬 Research-backed · Powered by Gemini 2.5
           </div>
 
           <h1 className="text-5xl sm:text-6xl font-bold leading-[1.1]" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
-            Stop guessing.<br />
-            <span className="gradient-text">Know</span>{' '}
-            <span>you&apos;re ready.</span>
+            Interviews test<br />
+            your <span className="gradient-text">nerves.</span><br />
+            <span style={{ fontSize: '0.85em' }}>Not your skills.</span>
           </h1>
 
           <p className="text-lg leading-relaxed max-w-lg" style={{ color: 'var(--text-secondary)' }}>
-            Upload your resume, match against 23 real vacancies, practice with AI-tailored questions,
-            and get an honest readiness verdict — all in under 5 minutes.
+            Practice with AI-tailored questions in a zero-pressure environment.
+            Get a real readiness score matched to actual job vacancies —
+            before you walk into the room.
           </p>
 
           {/* Animated readiness bar */}
@@ -221,6 +222,51 @@ export default function HomePage() {
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Research callout ──────────────────────────────────────────────────── */}
+      <section
+        className="rounded-2xl p-6 sm:p-8 grid grid-cols-1 sm:grid-cols-[1fr,auto] gap-6 items-center"
+        style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+      >
+        <div className="space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+            Why this exists
+          </p>
+          <blockquote
+            className="text-xl sm:text-2xl font-semibold leading-snug"
+            style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}
+          >
+            &ldquo;Technical interviews assess anxiety,<br className="hidden sm:block" /> not software skills.&rdquo;
+          </blockquote>
+          <p className="text-sm max-w-lg" style={{ color: 'var(--text-secondary)' }}>
+            NC State University researchers found that the standard whiteboard interview format
+            significantly cuts candidate performance — by measuring stress responses, not actual ability.
+            Candidates who knew the answer still failed because someone was watching.
+          </p>
+          <a
+            href="https://news.ncsu.edu/2020/07/tech-job-interviews-anxiety/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs font-medium"
+            style={{ color: 'var(--accent)' }}
+          >
+            Read the NC State study ↗
+          </a>
+        </div>
+
+        {/* Stat pill */}
+        <div
+          className="flex flex-col items-center justify-center rounded-2xl px-8 py-6 text-center self-start sm:self-center flex-shrink-0"
+          style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}
+        >
+          <div className="text-5xl font-bold" style={{ color: 'var(--accent)' }}>2×</div>
+          <div className="text-sm font-medium mt-1" style={{ color: 'var(--text-primary)' }}>worse performance</div>
+          <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>when being observed</div>
+          <div className="text-xs mt-2 px-2" style={{ color: 'var(--text-muted)', borderTop: '1px solid var(--border)', paddingTop: '8px' }}>
+            NC State · 2020
           </div>
         </div>
       </section>
@@ -382,7 +428,7 @@ export default function HomePage() {
             Not just practice problems.
           </h2>
           <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-            LeetCode tells you if your code runs. We tell you if you&apos;re ready for the job.
+            LeetCode tells you if your code runs. We tell you if you&apos;re ready for the <em>job</em> — matched to a real vacancy, scored on your actual answers.
           </p>
         </div>
 

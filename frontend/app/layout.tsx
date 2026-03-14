@@ -48,14 +48,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </Link>
 
               <div className="flex items-center gap-3 text-sm">
-                <Link href="/resume" className="nav-link hidden sm:block">Resumes</Link>
+                <Link href="/match/fullstack-react-4yr" className="nav-link hidden sm:block">See Demo</Link>
                 <ThemeToggle />
                 <Link
                   href="/resume"
                   className="btn-accent px-3 sm:px-4 py-1.5 rounded-lg text-white text-sm font-medium whitespace-nowrap"
                 >
-                  <span className="hidden sm:inline">Start Prep →</span>
-                  <span className="sm:hidden">Prep →</span>
+                  <span className="hidden sm:inline">Try Free →</span>
+                  <span className="sm:hidden">Try →</span>
                 </Link>
               </div>
             </div>
