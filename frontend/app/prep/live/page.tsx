@@ -8,7 +8,7 @@
  * localStorage in MatchClient and load it here.
  */
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import type { Vacancy } from '@/types/vacancy'
@@ -16,7 +16,8 @@ import { getLiveVacancy } from '@/lib/session'
 import PrepClient from '@/components/PrepClient'
 import StepProgress from '@/components/StepProgress'
 
-export default function PrepLivePage() {
+// Inner component uses useSearchParams — must be inside <Suspense>
+function PrepLiveInner() {
   const searchParams = useSearchParams()
   const id = searchParams.get('id') ?? ''
 
@@ -103,5 +104,24 @@ export default function PrepLivePage() {
 
       <PrepClient vacancy={vacancy} />
     </div>
+  )
+}
+
+// Outer page wraps inner in Suspense — required by Next.js 14 for useSearchParams
+export default function PrepLivePage() {
+  return (
+    <Suspense fallback={
+      <div className="space-y-6">
+        <StepProgress currentStep={3} />
+        <div className="flex items-center justify-center py-20">
+          <div
+            className="w-8 h-8 border-2 rounded-full animate-spin"
+            style={{ borderColor: 'var(--accent-border)', borderTopColor: 'var(--accent)' }}
+          />
+        </div>
+      </div>
+    }>
+      <PrepLiveInner />
+    </Suspense>
   )
 }
