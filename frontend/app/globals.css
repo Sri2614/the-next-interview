@@ -173,6 +173,20 @@ pre {
 }
 .btn-accent:active:not(:disabled) { transform: translateY(0); }
 
+/* ─── Floating card animation (landing page hero) ───────────────────────────── */
+@keyframes float {
+  0%, 100% { transform: translateY(0px);  }
+  50%       { transform: translateY(-10px); }
+}
+.float-anim { animation: float 5s ease-in-out infinite; }
+
+/* ─── Pulsing live dot ───────────────────────────────────────────────────────── */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1);   }
+  50%       { opacity: 0.5; transform: scale(0.8); }
+}
+.pulse-dot { animation: pulse-dot 1.5s ease-in-out infinite; }
+
 /* ─── Score ring animation ───────────────────────────────────────────────────── */
 @keyframes score-fill {
   from { stroke-dashoffset: 339.3; }
