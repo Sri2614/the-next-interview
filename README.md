@@ -74,7 +74,11 @@ A candidate uploads (or picks) a resume. The platform matches it against 23 real
 ### ✅ Platform / UX
 - **StepProgress** navigation bar — shows current step with visual indicators, previous steps clickable
 - **Mobile responsive** — flex-wrap tabs, hidden overflow nav links, touch-friendly targets (≥36px)
-- **Retry logic** on agent calls — automatic retry with progress indicator
+- **Cold-start retry logic** — warmup ping on page load + automatic retry with "Agent warming up…" indicator if first request fails
+- **Markdown rendering** — all agent-generated text (challenge description, step explanations, hints, key points) rendered via `react-markdown` — bold, lists, code blocks display correctly instead of raw `**stars**`
+- **ErrorBoundary** component wraps pages to catch render-time crashes gracefully
+- **Session TTL** — PrepSession and AssessmentSession auto-expire after 7 days
+- Shared constants in `lib/constants.ts` — `ADK_BASE`, `CODING_LANGUAGES`, `SESSION_TTL_MS`
 - Dark theme throughout — CSS custom properties for all colours
 - TypeScript strict throughout frontend
 
@@ -239,11 +243,13 @@ the-next-interview/
     │   ├── ResumeUpload.tsx     # PDF upload + Document AI integration
     │   ├── StepProgress.tsx     # Top navigation progress bar
     │   ├── MatchClient.tsx      # Vacancy cards + filter tabs
-    │   ├── PrepClient.tsx       # Question/challenge tab UI
+    │   ├── PrepClient.tsx       # Question/challenge tab UI (markdown rendering, cold-start retry)
     │   ├── AssessmentClient.tsx # Answer textarea + per-Q feedback
-    │   └── ReportClient.tsx     # Score bars, verdict, roadmap, courses
+    │   ├── ReportClient.tsx     # Score bars, verdict, roadmap, courses
+    │   └── ErrorBoundary.tsx    # React error boundary for render-time crash recovery
     ├── lib/
-    │   ├── session.ts           # localStorage read/write helpers
+    │   ├── constants.ts         # ADK_BASE, CODING_LANGUAGES, SESSION_TTL_MS
+    │   ├── session.ts           # localStorage read/write helpers with 7-day TTL
     │   └── mock-data.ts         # Loads resume/vacancy JSON
     ├── data/                    # Mock resumes + vacancies (frontend copy)
     ├── types/                   # TypeScript interfaces
@@ -298,7 +304,7 @@ The frontend uses three localStorage slots:
 - `PrepClient` only restores cached questions if `session.vacancyId === vacancy.id`
 - `AssessmentClient` only redirects to report if `assessment.prepSessionId === sessionId` (URL param)
 - `ReportClient` only loads stored report if `assessment.sessionId === sessionId` (URL param)
-- ADK session IDs get `Date.now()` suffix to avoid `409 Conflict` on retry
+- ADK session IDs use `crypto.randomUUID()` / `nanoid()` — no collisions on retry
 
 ---
 
@@ -370,7 +376,7 @@ npm run dev
 
 1. Open http://localhost:3000
 2. Pick a mock profile (e.g. "Sri Balaji")
-3. Click "Match Against 23 Vacancies" — expect vacancy cards with % scores in ~10–30 s
+3. Click "Find Live Matches" — expect vacancy cards with % scores in ~10–30 s
 4. Pick a vacancy → click "Generate Prep Material"
 5. Answer questions → Submit All → view Report
 
@@ -453,9 +459,11 @@ In production this is set via `--substitutions=_ADK_URL=...` during Cloud Build 
 | Problem | Cause | Fix |
 |---------|-------|-----|
 | `Failed to fetch` on match page | Wrong `NEXT_PUBLIC_ADK_URL` baked in at build time | Rebuild frontend with correct agents URL in `--substitutions` |
-| `409 Conflict` from ADK | Reusing the same session ID on retry | All session IDs include `Date.now()` suffix — already handled; if persists, clear localStorage |
+| `409 Conflict` from ADK | Reusing the same session ID on retry | All session IDs use `crypto.randomUUID()` — already handled; if persists, clear localStorage |
 | `Cannot read properties of undefined` on report page | Agent returned unexpected `verdict` or `priority` string | `getVerdictConfig()` in `ReportClient.tsx` has a fallback — check if normalizer covers the new string |
 | 0 vacancy cards shown | Agent returned empty on cold start | Error + Retry button shown; click retry. Set `--min-instances=1` to avoid cold starts |
+| Challenge fails on first click, works second time | Cloud Run cold start — first request arrives before container is warm | Fixed: warmup ping sent on prep page load; both `generateQuestions` and `generateChallenge` auto-retry once with "Agent warming up…" message |
+| Challenge text showing `**bold**` or `- bullets` as raw text | No markdown renderer | Fixed: `react-markdown` renders all agent-generated text fields in PrepClient |
 | "No report found" on report page | `assessment.sessionId !== sessionId` mismatch (old URL) | Complete a fresh assessment — don't navigate directly to old report URLs |
 | Agents taking 60+ seconds | `thinking_budget` not set to 0 | All agents must have `config=GenerateContentConfig(thinking_config=ThinkingConfig(thinking_budget=0))` — check each agent file |
 | Document AI `404` | Wrong processor ID or wrong regional endpoint | Use `ClientOptions(api_endpoint="us-central1-documentai.googleapis.com")` and verify processor ID in Cloud Console |
