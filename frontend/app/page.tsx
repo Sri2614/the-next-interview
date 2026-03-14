@@ -381,39 +381,85 @@ export default function HomePage() {
           </p>
         </div>
 
+        {/* overflow-x-auto lets mobile scroll horizontally; min-w prevents column collapse */}
         <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-          {/* Header */}
-          <div className="grid grid-cols-4 text-xs font-semibold uppercase tracking-widest px-5 py-3" style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>
-            <div className="col-span-1">Feature</div>
-            <div className="text-center" style={{ color: 'var(--accent)' }}>The Next Interview</div>
-            <div className="text-center">LeetCode</div>
-            <div className="text-center">Blind</div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" style={{ minWidth: '520px', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border)' }}>
+                  <th
+                    className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-widest"
+                    style={{ color: 'var(--text-muted)', width: '46%' }}
+                  >
+                    Feature
+                  </th>
+                  {/* TNI column — highlighted */}
+                  <th
+                    className="text-center px-4 py-3 text-xs font-semibold uppercase tracking-widest"
+                    style={{
+                      color: 'var(--accent)',
+                      width: '18%',
+                      background: 'var(--accent-soft)',
+                      borderLeft: '1px solid var(--accent-border)',
+                      borderRight: '1px solid var(--accent-border)',
+                    }}
+                  >
+                    The Next<br />Interview
+                  </th>
+                  <th
+                    className="text-center px-4 py-3 text-xs font-semibold uppercase tracking-widest"
+                    style={{ color: 'var(--text-muted)', width: '18%' }}
+                  >
+                    LeetCode
+                  </th>
+                  <th
+                    className="text-center px-4 py-3 text-xs font-semibold uppercase tracking-widest"
+                    style={{ color: 'var(--text-muted)', width: '18%' }}
+                  >
+                    Blind
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {COMPARISON.map((row, i) => (
+                  <tr
+                    key={row.feature}
+                    style={{
+                      background: i % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-base)',
+                      borderBottom: i < COMPARISON.length - 1 ? '1px solid var(--border)' : 'none',
+                    }}
+                  >
+                    <td className="px-5 py-3" style={{ color: 'var(--text-secondary)' }}>{row.feature}</td>
+                    {/* TNI — always ✓, highlighted column */}
+                    <td
+                      className="text-center px-4 py-3"
+                      style={{
+                        background: i % 2 === 0
+                          ? 'rgba(139,92,246,0.06)'
+                          : 'rgba(139,92,246,0.04)',
+                        borderLeft: '1px solid var(--accent-border)',
+                        borderRight: '1px solid var(--accent-border)',
+                      }}
+                    >
+                      {row.tni
+                        ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold" style={{ background: 'rgba(52,211,153,0.12)', color: '#34d399' }}>✓</span>
+                        : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                    </td>
+                    <td className="text-center px-4 py-3">
+                      {row.leet
+                        ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold" style={{ background: 'rgba(52,211,153,0.12)', color: '#34d399' }}>✓</span>
+                        : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                    </td>
+                    <td className="text-center px-4 py-3">
+                      {row.blind
+                        ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold" style={{ background: 'rgba(52,211,153,0.12)', color: '#34d399' }}>✓</span>
+                        : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          {/* Rows */}
-          {COMPARISON.map((row, i) => (
-            <div
-              key={row.feature}
-              className="grid grid-cols-4 px-5 py-3 text-sm items-center"
-              style={{ background: i % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-base)', borderBottom: '1px solid var(--border)' }}
-            >
-              <div style={{ color: 'var(--text-secondary)' }}>{row.feature}</div>
-              <div className="text-center">
-                {row.tni
-                  ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold" style={{ background: 'rgba(52,211,153,0.12)', color: '#34d399' }}>✓</span>
-                  : <span style={{ color: 'var(--text-muted)' }}>—</span>}
-              </div>
-              <div className="text-center">
-                {row.leet
-                  ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold" style={{ background: 'rgba(52,211,153,0.12)', color: '#34d399' }}>✓</span>
-                  : <span style={{ color: 'var(--text-muted)' }}>—</span>}
-              </div>
-              <div className="text-center">
-                {row.blind
-                  ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold" style={{ background: 'rgba(52,211,153,0.12)', color: '#34d399' }}>✓</span>
-                  : <span style={{ color: 'var(--text-muted)' }}>—</span>}
-              </div>
-            </div>
-          ))}
         </div>
       </section>
 
