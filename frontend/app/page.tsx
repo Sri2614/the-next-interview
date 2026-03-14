@@ -29,10 +29,10 @@ const OLD_WAY = [
 ]
 
 const NEW_WAY = [
-  { icon: '📄', title: 'Upload your resume',             desc: 'AI reads your actual skills, experience level, and gaps — in seconds.' },
-  { icon: '🎯', title: 'Matched to 23 real vacancies',   desc: 'See which jobs you qualify for today and which ones need more prep.' },
-  { icon: '💬', title: 'Questions built around your gaps', desc: 'Not a generic list — targeted practice on exactly what that role needs.' },
-  { icon: '✅', title: 'Walk in with a readiness score',  desc: '87% ready. A verdict based on your answers, not a gut feeling.' },
+  { icon: '📄', title: 'Upload your resume',               desc: 'AI reads your actual skills, experience level, and gaps — in seconds.' },
+  { icon: '🎯', title: 'Target any role, any company',     desc: 'Pick the job you\'re going for. AI maps your profile against what that role actually needs.' },
+  { icon: '💬', title: 'Questions built for that interview', desc: 'Not a generic list — targeted practice on the exact skills and gaps for your chosen role.' },
+  { icon: '✅', title: 'Walk in knowing you\'re ready',    desc: 'A real readiness verdict based on your answers — not a gut feeling.' },
 ]
 
 // Journey dots — shows the multi-attempt progression
@@ -90,9 +90,8 @@ export default function HomePage() {
           </h1>
 
           <p className="text-lg leading-relaxed max-w-lg" style={{ color: 'var(--text-secondary)' }}>
-            Practice with AI-tailored questions in a zero-pressure environment.
-            Get a real readiness score matched to actual job vacancies —
-            before you walk into the room.
+            Pick the role you want. Practice with AI questions built around your gaps.
+            Walk in with a real readiness score — not just hope.
           </p>
 
           {/* Animated readiness bar */}
@@ -132,7 +131,7 @@ export default function HomePage() {
             <span>·</span>
             <span>⏱️ ~60 seconds</span>
             <span>·</span>
-            <span>💼 23 vacancies</span>
+            <span>🎯 Any role, any company</span>
             <span>·</span>
             <span>🔁 Retake free</span>
           </div>
@@ -581,7 +580,7 @@ export default function HomePage() {
           <span>·</span>
           <span>🔓 No sign-up</span>
           <span>·</span>
-          <span>💼 23 vacancies</span>
+          <span>🎯 Any role, any company</span>
           <span>·</span>
           <span>🔁 Retake anytime</span>
         </div>
