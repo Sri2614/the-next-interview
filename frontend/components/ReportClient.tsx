@@ -223,6 +223,7 @@ export default function ReportClient({ sessionId }: Props) {
   const [recommendations, setRecommendations] = useState<RecommendationReport | null>(null)
   const [loading, setLoading] = useState(false)
   const [loadingRecs, setLoadingRecs] = useState(false)
+  const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -355,6 +356,16 @@ For each topic, recommend 2-3 real online courses from Google Cloud Skills Boost
     } finally {
       setLoadingRecs(false)
     }
+  }
+
+  function handleCopyLink() {
+    navigator.clipboard.writeText(window.location.href)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  function handlePrint() {
+    window.print()
   }
 
   function handleRetake() {
@@ -651,25 +662,44 @@ For each topic, recommend 2-3 real online courses from Google Cloud Skills Boost
           </p>
         )}
         <div className="shine-divider" />
+
+        {/* Primary actions */}
         <div className="flex flex-col sm:flex-row justify-center gap-3">
           <button
             onClick={handleRetake}
-            className="flex-1 sm:flex-none px-5 py-3 rounded-xl text-sm font-semibold transition-all text-center"
-            style={{ border: '1px solid var(--accent)', color: 'var(--accent)', background: 'transparent' }}>
-            ↻ Retake Assessment
+            className="flex-1 sm:flex-none btn-accent px-5 py-3 rounded-xl text-sm font-semibold text-white text-center">
+            🔄 Retake Assessment
           </button>
           <a href="/resume"
-            className="flex-1 sm:flex-none px-5 py-3 rounded-xl text-sm font-medium text-center transition-colors"
-            style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
-            Try Another Resume
-          </a>
-          <a href="/resume"
-            className="flex-1 sm:flex-none btn-accent px-5 py-3 rounded-xl text-sm font-semibold text-white text-center">
+            className="flex-1 sm:flex-none px-5 py-3 rounded-xl text-sm font-semibold text-center transition-colors"
+            style={{ border: '1px solid var(--accent)', color: 'var(--accent)', background: 'transparent' }}>
             Prep for Another Role →
           </a>
         </div>
+
+        {/* Secondary actions */}
+        <div className="flex flex-col sm:flex-row justify-center gap-3">
+          <button
+            onClick={handleCopyLink}
+            className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-sm font-medium text-center transition-colors"
+            style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)', background: 'transparent' }}>
+            {copied ? '✓ Link copied!' : '🔗 Copy Report Link'}
+          </button>
+          <button
+            onClick={handlePrint}
+            className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-sm font-medium text-center transition-colors"
+            style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)', background: 'transparent' }}>
+            🖨️ Print / Save as PDF
+          </button>
+          <a href="/resume"
+            className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-sm font-medium text-center transition-colors"
+            style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)', background: 'transparent' }}>
+            Try Another Resume
+          </a>
+        </div>
+
         <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
-          Retaking uses the same prep questions — study the course recommendations first for best results
+          Retaking generates fresh questions targeting your latest weak areas
         </p>
       </div>
 

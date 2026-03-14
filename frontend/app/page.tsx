@@ -8,10 +8,28 @@ const MOCK_BARS = [
   { label: 'Tech Stack',   pct: 85, color: '#8b5cf6' },
 ]
 
+// skill pct >= 80 → green  |  >= 50 → yellow  |  < 50 → red (gap)
 const MOCK_VACANCIES = [
-  { title: 'Staff Engineer',      company: 'Stripe',  score: 87, color: '#34d399', badge: 'Strong Match',  skills: ['TypeScript','React','Node.js'] },
-  { title: 'Senior Frontend Dev', company: 'Vercel',  score: 71, color: '#60a5fa', badge: 'Good Match',    skills: ['Next.js','CSS','Tailwind'] },
-  { title: 'Lead React Engineer', company: 'Revolut', score: 48, color: '#fbbf24', badge: 'Stretch Role',  skills: ['React Native','GraphQL'] },
+  { title: 'Staff Engineer',      company: 'Stripe',  score: 87, color: '#34d399', badge: 'Strong Match',
+    skills: [{ name: 'TypeScript', pct: 98 }, { name: 'React', pct: 94 }, { name: 'Node.js', pct: 87 }, { name: 'Kubernetes', pct: 28 }] },
+  { title: 'Senior Frontend Dev', company: 'Vercel',  score: 71, color: '#60a5fa', badge: 'Good Match',
+    skills: [{ name: 'Next.js', pct: 91 }, { name: 'CSS', pct: 85 }, { name: 'Tailwind', pct: 78 }, { name: 'GraphQL', pct: 41 }] },
+  { title: 'Lead React Engineer', company: 'Revolut', score: 48, color: '#fbbf24', badge: 'Stretch Role',
+    skills: [{ name: 'React Native', pct: 55 }, { name: 'GraphQL', pct: 41 }, { name: 'gRPC', pct: 12 }] },
+]
+function skillColor(pct: number)  { return pct >= 80 ? '#34d399' : pct >= 50 ? '#fbbf24' : '#f87171' }
+function skillBg(pct: number)     { return pct >= 80 ? 'rgba(52,211,153,0.10)' : pct >= 50 ? 'rgba(251,191,36,0.10)' : 'rgba(248,113,113,0.10)' }
+function skillBorder(pct: number) { return pct >= 80 ? 'rgba(52,211,153,0.25)' : pct >= 50 ? 'rgba(251,191,36,0.25)' : 'rgba(248,113,113,0.25)' }
+
+const COMPARISON = [
+  { feature: 'Matched to real job listings',    tni: true,  leet: false, blind: false },
+  { feature: 'No sign-up required',             tni: true,  leet: false, blind: false },
+  { feature: 'CV upload & AI parsing',          tni: true,  leet: false, blind: false },
+  { feature: 'Skill gap analysis per vacancy',  tni: true,  leet: false, blind: false },
+  { feature: 'AI readiness verdict',            tni: true,  leet: false, blind: false },
+  { feature: 'Coding challenges',               tni: true,  leet: true,  blind: false },
+  { feature: 'Track score across attempts',     tni: true,  leet: false, blind: false },
+  { feature: 'Course recommendations',          tni: true,  leet: false, blind: false },
 ]
 
 // Journey dots — shows the multi-attempt progression
@@ -233,8 +251,12 @@ export default function HomePage() {
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {v.skills.map(s => (
-                  <span key={s} className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>
-                    ✓ {s}
+                  <span
+                    key={s.name}
+                    className="text-xs px-2 py-0.5 rounded-full font-medium tabular-nums"
+                    style={{ background: skillBg(s.pct), color: skillColor(s.pct), border: `1px solid ${skillBorder(s.pct)}` }}
+                  >
+                    {s.pct < 50 ? '⚠️' : '✓'} {s.name} {s.pct}%
                   </span>
                 ))}
               </div>
@@ -344,6 +366,54 @@ export default function HomePage() {
               <span className="text-xs px-2 py-0.5 rounded-full" style={{ color: 'var(--text-muted)', border: '1px solid var(--border)' }}>→ 15 questions generated</span>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ── Comparison table ─────────────────────────────────────────────────── */}
+      <section className="space-y-6">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>How it compares</p>
+          <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+            Not just practice problems.
+          </h2>
+          <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+            LeetCode tells you if your code runs. We tell you if you&apos;re ready for the job.
+          </p>
+        </div>
+
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+          {/* Header */}
+          <div className="grid grid-cols-4 text-xs font-semibold uppercase tracking-widest px-5 py-3" style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>
+            <div className="col-span-1">Feature</div>
+            <div className="text-center" style={{ color: 'var(--accent)' }}>The Next Interview</div>
+            <div className="text-center">LeetCode</div>
+            <div className="text-center">Blind</div>
+          </div>
+          {/* Rows */}
+          {COMPARISON.map((row, i) => (
+            <div
+              key={row.feature}
+              className="grid grid-cols-4 px-5 py-3 text-sm items-center"
+              style={{ background: i % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-base)', borderBottom: '1px solid var(--border)' }}
+            >
+              <div style={{ color: 'var(--text-secondary)' }}>{row.feature}</div>
+              <div className="text-center">
+                {row.tni
+                  ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold" style={{ background: 'rgba(52,211,153,0.12)', color: '#34d399' }}>✓</span>
+                  : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+              </div>
+              <div className="text-center">
+                {row.leet
+                  ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold" style={{ background: 'rgba(52,211,153,0.12)', color: '#34d399' }}>✓</span>
+                  : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+              </div>
+              <div className="text-center">
+                {row.blind
+                  ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold" style={{ background: 'rgba(52,211,153,0.12)', color: '#34d399' }}>✓</span>
+                  : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
