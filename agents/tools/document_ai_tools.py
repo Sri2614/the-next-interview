@@ -70,7 +70,7 @@ def _extract_with_gemini(pdf_base64: str) -> str:
         client = Client(api_key=api_key) if api_key else Client()
 
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             contents=[
                 genai_types.Content(
                     role="user",
