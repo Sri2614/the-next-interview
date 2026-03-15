@@ -24,7 +24,7 @@ export default function MatchPage({ params }: Props) {
         <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>Step 2 of 5</p>
         <h1 className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>Job Matches</h1>
         <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>
-          AI scoring your profile against 23 vacancies.
+          AI matching your profile against live vacancies.
         </p>
       </div>
 
