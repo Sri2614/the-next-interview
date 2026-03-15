@@ -21,6 +21,41 @@ const PROGRESS_STEPS = [
   'Almost there…',
 ]
 
+const COMMON_ROLES = [
+  'Software Engineer',
+  'Frontend Engineer',
+  'Backend Engineer',
+  'Full Stack Engineer',
+  'DevOps Engineer',
+  'Platform Engineer',
+  'Site Reliability Engineer',
+  'Cloud Solutions Architect',
+  'Solutions Architect',
+  'Infrastructure Engineer',
+  'Data Engineer',
+  'ML / AI Engineer',
+  'Data Scientist',
+  'Android Developer',
+  'iOS Developer',
+  'Mobile Developer',
+  'Security Engineer',
+  'QA / Test Engineer',
+  'Engineering Manager',
+  'Product Manager',
+]
+
+const REGIONS = [
+  'Remote (Worldwide)',
+  'Europe',
+  'United States',
+  'United Kingdom',
+  'India',
+  'Canada',
+  'APAC',
+  'Middle East',
+  'Latin America',
+]
+
 const RECOMMENDATION_STYLE = {
   strong:   { cssVar: 'var(--score-excellent)', label: 'Strong Match'  },
   good:     { cssVar: 'var(--score-good)',      label: 'Good Match'    },
@@ -44,9 +79,12 @@ export default function MatchClient({ resume, vacancies, autoStart = false }: Pr
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null)
   const autoStarted = useRef(false)
 
-  // Search filters
-  const [targetRole, setTargetRole] = useState(resume.role)
-  const [targetLocation, setTargetLocation] = useState('Remote')
+  // Search filters — pre-filled from resume, user can override
+  const [targetRole, setTargetRole] = useState(() => {
+    const common = COMMON_ROLES.find(r => r.toLowerCase().includes(resume.role.toLowerCase().split(' ')[0]))
+    return common ?? resume.role
+  })
+  const [targetLocation, setTargetLocation] = useState('Remote (Worldwide)')
   const [experienceLevel, setExperienceLevel] = useState<'any' | 'junior' | 'mid' | 'senior'>('any')
 
   // Auto-start matching when navigating from resume upload
@@ -293,23 +331,28 @@ export default function MatchClient({ resume, vacancies, autoStart = false }: Pr
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Target Role</label>
-                  <input
-                    value={targetRole}
-                    onChange={e => setTargetRole(e.target.value)}
-                    placeholder="e.g. Senior Backend Engineer"
+                  <select
+                    value={COMMON_ROLES.includes(targetRole) ? targetRole : '__custom__'}
+                    onChange={e => { if (e.target.value !== '__custom__') setTargetRole(e.target.value) }}
                     className="w-full rounded-lg px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-                  />
+                  >
+                    {COMMON_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                    {!COMMON_ROLES.includes(targetRole) && (
+                      <option value="__custom__">{targetRole}</option>
+                    )}
+                  </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Location / Work Style</label>
-                  <input
+                  <label className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Region</label>
+                  <select
                     value={targetLocation}
                     onChange={e => setTargetLocation(e.target.value)}
-                    placeholder="e.g. Remote, London, Hybrid"
                     className="w-full rounded-lg px-3 py-2 text-sm outline-none"
                     style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-                  />
+                  >
+                    {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
                 </div>
               </div>
               <div className="space-y-1">
