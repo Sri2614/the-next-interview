@@ -7,6 +7,10 @@ on:
       - 'agents/**'
       - '.github/workflows/deploy-agents.yml'
 
+permissions:
+  contents: read
+  id-token: write   # required for Workload Identity Federation
+
 jobs:
   deploy:
     name: Build & Deploy to Cloud Run
@@ -16,10 +20,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Authenticate to Google Cloud
+      - name: Authenticate to Google Cloud (Workload Identity)
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: projects/379802788252/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: github-deployer@thesimplifiedtech.iam.gserviceaccount.com
 
       - name: Set up gcloud CLI
         uses: google-github-actions/setup-gcloud@v2
