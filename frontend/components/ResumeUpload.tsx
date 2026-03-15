@@ -356,7 +356,7 @@ export default function ResumeUpload() {
 
         {/* CTA */}
         <button
-          onClick={() => router.push('/match/custom?autostart=true')}
+          onClick={() => router.push('/match/custom')}
           className="w-full py-3 rounded-xl text-white font-semibold transition-colors"
           style={{ background: 'var(--accent)' }}
         >

@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
 import { getCustomResume } from '@/lib/session'
 import MatchClient from '@/components/MatchClient'
 import type { Vacancy } from '@/types/vacancy'
@@ -13,8 +12,6 @@ interface Props {
 export default function MatchClientCustom({ vacancies }: Props) {
   const [resume, setResume] = useState<ReturnType<typeof getCustomResume>>(null)
   const [loaded, setLoaded] = useState(false)
-  const searchParams = useSearchParams()
-  const autoStart = searchParams.get('autostart') === 'true'
 
   useEffect(() => {
     setResume(getCustomResume())
@@ -45,5 +42,6 @@ export default function MatchClientCustom({ vacancies }: Props) {
     )
   }
 
-  return <MatchClient resume={resume} vacancies={vacancies} autoStart={autoStart} />
+  // Always show dropdowns first — no autoStart so user can set role/location before matching
+  return <MatchClient resume={resume} vacancies={vacancies} />
 }

@@ -66,10 +66,9 @@ const RECOMMENDATION_STYLE = {
 interface Props {
   resume: MockResume
   vacancies: Vacancy[]
-  autoStart?: boolean
 }
 
-export default function MatchClient({ resume, vacancies, autoStart = false }: Props) {
+export default function MatchClient({ resume, vacancies }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [progressStep, setProgressStep] = useState(0)
@@ -77,7 +76,6 @@ export default function MatchClient({ resume, vacancies, autoStart = false }: Pr
   const [error, setError] = useState<string | null>(null)
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'strong' | 'good' | 'stretch'>('all')
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null)
-  const autoStarted = useRef(false)
 
   // Search filters — pre-filled from resume, user can override
   const [targetRole, setTargetRole] = useState(() => {
@@ -86,15 +84,6 @@ export default function MatchClient({ resume, vacancies, autoStart = false }: Pr
   })
   const [targetLocation, setTargetLocation] = useState('Remote (Worldwide)')
   const [experienceLevel, setExperienceLevel] = useState<'any' | 'junior' | 'mid' | 'senior'>('any')
-
-  // Auto-start matching when navigating from resume upload
-  useEffect(() => {
-    if (autoStart && !autoStarted.current && !matchResults) {
-      autoStarted.current = true
-      runMatching()
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoStart])
 
   // Cycle through progress messages while loading
   useEffect(() => {
