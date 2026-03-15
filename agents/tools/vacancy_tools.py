@@ -23,6 +23,8 @@ from typing import Any
 
 from google.adk.tools import ToolContext
 
+from tools.salary_tools import enrich_salaries_from_levelsfyi
+
 logger = logging.getLogger(__name__)
 
 # Adzuna country codes for each region
@@ -46,6 +48,54 @@ _EU_COUNTRIES = {
     "LV", "EE", "SK", "HR", "BG", "SI", "LU", "MT", "CY", "GR",
 }
 _NON_EU_COUNTRIES = {"US", "CA", "AU", "IN", "MX", "BR", "SG", "PH"}
+
+
+# ── Salary formatting ────────────────────────────────────────────────────────
+
+# Currency symbols by ISO code. Extend as needed.
+_CURRENCY_SYMBOLS: dict[str, str] = {
+    "USD": "$", "GBP": "£", "EUR": "€", "CAD": "CA$",
+    "AUD": "A$", "INR": "₹", "CHF": "CHF", "SEK": "SEK",
+    "PLN": "PLN", "CZK": "CZK",
+}
+
+
+def _format_salary(
+    min_val: float | None,
+    max_val: float | None,
+    currency: str = "USD",
+    period: str = "YEAR",
+) -> str:
+    """Format a salary range as a human-readable string.
+
+    Returns "" if both min and max are None/0.
+    Examples: "$120K-$160K/yr", "£45K-£55K/yr", "From $120K/yr"
+    """
+    # Return empty if both are None/zero
+    if (min_val is None or min_val == 0) and (max_val is None or max_val == 0):
+        return ""
+    # Clamp negative sentinel values (e.g. -1 from JSearch) to None
+    if min_val is not None and min_val < 0:
+        min_val = None
+    if max_val is not None and max_val < 0:
+        max_val = None
+    # After clamping, check again if both are empty
+    if min_val is None and max_val is None:
+        return ""
+
+    sym = _CURRENCY_SYMBOLS.get(currency.upper(), currency.upper() + " ")
+    suffix = "/yr" if period.upper() in ("YEAR", "YEARLY", "ANNUAL", "") else f"/{period.lower()}"
+
+    def _fmt(v: float) -> str:
+        if v >= 1000:
+            return f"{sym}{v / 1000:.0f}K"
+        return f"{sym}{v:.0f}"
+
+    if min_val is not None and max_val is not None:
+        return f"{_fmt(min_val)}-{_fmt(max_val)}{suffix}"
+    if min_val is not None:
+        return f"From {_fmt(min_val)}{suffix}"
+    return f"Up to {_fmt(max_val)}{suffix}"
 
 
 # ── Public tool ──────────────────────────────────────────────────────────────
@@ -116,7 +166,9 @@ def fetch_live_vacancies(tool_context: ToolContext) -> list[dict[str, Any]]:
             filtered = _merge_jobs(filtered, _call_jsearch(jsearch_key, role))
 
     logger.info("fetch_live_vacancies returning %d jobs", len(filtered))
-    return [_normalise_job(j) for j in filtered[:25]]
+    normalised = [_normalise_job(j) for j in filtered[:25]]
+    normalised = enrich_salaries_from_levelsfyi(normalised)
+    return normalised
 
 
 # ── JSearch ───────────────────────────────────────────────────────────────────
@@ -269,12 +321,25 @@ def _normalise_jsearch_job(j: dict[str, Any]) -> dict[str, Any]:
     is_remote: bool = bool(j.get("job_is_remote", False))
     location_str = "Remote" if (is_remote and not city) else ", ".join(filter(None, [city, country]))
 
+    # Salary extraction
+    salary_min = j.get("job_min_salary")
+    salary_max = j.get("job_max_salary")
+    salary_currency = j.get("job_salary_currency") or "USD"
+    salary_period = j.get("job_salary_period") or "YEAR"
+    salary_str = _format_salary(
+        float(salary_min) if salary_min else None,
+        float(salary_max) if salary_max else None,
+        salary_currency,
+        salary_period,
+    )
+
     return {
         "id":          (j.get("job_id") or "")[:40],
         "title":       j.get("job_title") or "",
         "company":     j.get("employer_name") or "",
         "industry":    j.get("job_industry") or "Technology",
         "location":    location_str,
+        "salaryRange": salary_str,
         "type":        j.get("job_employment_type") or "FULLTIME",
         "description": (j.get("job_description") or "")[:500],
         "requirements": {"mustHave": skills, "niceToHave": [], "yearsExperience": 0},
@@ -298,12 +363,34 @@ def _normalise_adzuna_job(j: dict[str, Any]) -> dict[str, Any]:
     # Build unique ID from Adzuna's id field
     job_id = str(j.get("id", ""))
 
+    # Salary extraction — skip Adzuna's predicted/estimated salaries
+    is_predicted = str(j.get("salary_is_predicted", "0")) == "1"
+    salary_str = ""
+    if not is_predicted:
+        salary_min = j.get("salary_min")
+        salary_max = j.get("salary_max")
+        # Adzuna salaries are in local currency; map country to currency
+        currency_map = {
+            "GB": "GBP", "DE": "EUR", "NL": "EUR", "FR": "EUR",
+            "PL": "PLN", "AT": "EUR", "BE": "EUR", "CH": "CHF",
+            "SE": "SEK", "IE": "EUR", "US": "USD", "CA": "CAD",
+            "AU": "AUD", "IN": "INR",
+        }
+        currency = currency_map.get(country_code, "EUR")
+        salary_str = _format_salary(
+            float(salary_min) if salary_min else None,
+            float(salary_max) if salary_max else None,
+            currency,
+            "YEAR",
+        )
+
     return {
         "id":          f"adzuna-{job_id}"[:40],
         "title":       j.get("title") or "",
         "company":     company_name,
         "industry":    industry,
         "location":    location_parts or country_code,
+        "salaryRange": salary_str,
         "type":        "FULLTIME",
         "description": (j.get("description") or "")[:500],
         "requirements": {"mustHave": [], "niceToHave": [], "yearsExperience": 0},
