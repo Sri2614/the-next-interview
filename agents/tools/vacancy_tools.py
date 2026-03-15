@@ -1,13 +1,14 @@
 """Tools for loading and working with job vacancy data.
 
-fetch_live_vacancies() calls the JSearch API (RapidAPI) to return real job
-listings from LinkedIn, Indeed, Glassdoor, and ZipRecruiter.
+fetch_live_vacancies() calls TWO APIs in parallel:
+  1. JSearch (RapidAPI)  — LinkedIn/Indeed/Glassdoor/ZipRecruiter, global
+  2. Adzuna              — dedicated European job boards (NL, DE, GB, FR, PL…)
 
 Strategy:
-- For Europe: query multiple EU tech hubs + filter out US-only jobs
-- For Remote: single remote query
-- For other regions: location-specific + remote queries
-- Merge, deduplicate, and return up to 20 jobs
+- Run JSearch + Adzuna queries concurrently
+- Merge and deduplicate all results
+- Filter out jobs that don't match the requested region
+- Return up to 25 jobs
 No mock fallback — always live data or a clear failure.
 """
 
@@ -24,84 +25,110 @@ from google.adk.tools import ToolContext
 
 logger = logging.getLogger(__name__)
 
-# Countries considered part of the European job market
+# Adzuna country codes for each region
+_ADZUNA_EU_COUNTRIES = ["nl", "de", "gb", "fr", "pl", "at", "be", "ch", "se", "ie"]
+_ADZUNA_COUNTRY_MAP = {
+    "europe":         ["nl", "de", "gb", "fr", "pl"],
+    "united kingdom": ["gb"],
+    "uk":             ["gb"],
+    "india":          ["in"],
+    "canada":         ["ca"],
+    "australia":      ["au"],
+    "united states":  ["us"],
+    "us":             ["us"],
+    "usa":            ["us"],
+}
+
+# EU country codes (ISO 3166-1 alpha-2) — used to filter JSearch results
 _EU_COUNTRIES = {
     "GB", "DE", "NL", "FR", "SE", "PL", "ES", "IT", "BE", "CH",
     "AT", "DK", "NO", "FI", "IE", "PT", "CZ", "HU", "RO", "LT",
     "LV", "EE", "SK", "HR", "BG", "SI", "LU", "MT", "CY", "GR",
 }
-
-# Countries that are NOT Europe (used to exclude non-remote US/CA/AU jobs)
 _NON_EU_COUNTRIES = {"US", "CA", "AU", "IN", "MX", "BR", "SG", "PH"}
 
 
 # ── Public tool ──────────────────────────────────────────────────────────────
 
 def fetch_live_vacancies(tool_context: ToolContext) -> list[dict[str, Any]]:
-    """Fetch real-time job vacancies from JSearch (LinkedIn/Indeed/Glassdoor).
+    """Fetch real-time job vacancies from JSearch + Adzuna in parallel.
 
     Reads search_role and search_location from ADK session state.
-    Uses location-aware query strategy and filters out irrelevant regional jobs.
-
-    Returns:
-        List of vacancy dicts ready for the vacancy_matcher to score.
+    Returns merged, deduplicated, location-filtered results.
     """
-    api_key: str = os.environ.get("RAPIDAPI_KEY", "")
+    jsearch_key: str = os.environ.get("RAPIDAPI_KEY", "")
+    adzuna_app_id: str = os.environ.get("ADZUNA_APP_ID", "")
+    adzuna_app_key: str = os.environ.get("ADZUNA_APP_KEY", "")
     role: str = tool_context.state.get("search_role", "software engineer")
     location: str = tool_context.state.get("search_location", "remote")
 
-    if not api_key:
+    if not jsearch_key:
         raise ValueError("RAPIDAPI_KEY is not configured on this server.")
 
-    # Build queries based on location
-    queries = _build_queries(role, location)
-    logger.info("fetch_live_vacancies: role='%s' location='%s' queries=%s", role, location, queries)
+    loc = location.lower().strip()
 
-    # Phase 1: run all queries in parallel
-    combined: list[dict] = _run_parallel_queries(api_key, queries)
+    # ── Run JSearch + Adzuna concurrently ────────────────────────────────────
+    jsearch_queries = _build_jsearch_queries(role, location)
+    adzuna_countries = _ADZUNA_COUNTRY_MAP.get(loc, [])
 
-    # Phase 2: filter by location relevance
-    filtered = [j for j in combined if _is_relevant_for_location(j, location)]
-    logger.info("After location filter: %d / %d jobs kept", len(filtered), len(combined))
+    all_jobs: list[dict] = []
 
-    # Phase 3: broaden if too few after filtering
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        futures: dict = {}
+
+        # JSearch futures
+        for q in jsearch_queries:
+            f = pool.submit(_call_jsearch, jsearch_key, q)
+            futures[f] = ("jsearch", q)
+
+        # Adzuna futures (only when we have credentials + relevant countries)
+        if adzuna_app_id and adzuna_app_key and adzuna_countries:
+            for country in adzuna_countries[:3]:  # max 3 countries to stay fast
+                f = pool.submit(_call_adzuna, adzuna_app_id, adzuna_app_key, country, role)
+                futures[f] = ("adzuna", country)
+
+        for future in as_completed(futures):
+            source, tag = futures[future]
+            try:
+                jobs = future.result()
+                logger.info("%s[%s] returned %d jobs", source, tag, len(jobs))
+                all_jobs = _merge_jobs(all_jobs, jobs)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("%s[%s] failed: %s", source, tag, exc)
+
+    logger.info("Combined before filter: %d jobs", len(all_jobs))
+
+    # ── Filter by location relevance ─────────────────────────────────────────
+    filtered = [j for j in all_jobs if _is_relevant_for_location(j, location)]
+    logger.info("After location filter: %d / %d jobs kept", len(filtered), len(all_jobs))
+
+    # ── Broaden if too few ────────────────────────────────────────────────────
     if len(filtered) < 5:
-        logger.info("Too few after filter — broadening with role-only query")
-        extra = _call_jsearch(api_key, role)
-        extra_filtered = [j for j in extra if _is_relevant_for_location(j, location)]
-        filtered = _merge_jobs(filtered, extra_filtered)
+        logger.info("Too few — broadening with role-only query")
+        extra = _call_jsearch(jsearch_key, role)
+        extra_f = [j for j in extra if _is_relevant_for_location(j, location)]
+        filtered = _merge_jobs(filtered, extra_f)
 
     if len(filtered) < 5:
-        # Last resort: drop location filter entirely
-        logger.info("Still too few — dropping location filter, returning all")
-        filtered = combined
+        logger.info("Still too few — dropping location filter")
+        filtered = all_jobs
         if len(filtered) < 5:
-            extra = _call_jsearch(api_key, role)
-            filtered = _merge_jobs(filtered, extra)
+            filtered = _merge_jobs(filtered, _call_jsearch(jsearch_key, role))
 
-    logger.info(
-        "fetch_live_vacancies returning %d jobs for role='%s' location='%s'",
-        len(filtered), role, location,
-    )
-    return [_normalise_jsearch_job(j) for j in filtered[:20]]
+    logger.info("fetch_live_vacancies returning %d jobs", len(filtered))
+    return [_normalise_job(j) for j in filtered[:25]]
 
 
-# ── Query building ────────────────────────────────────────────────────────────
+# ── JSearch ───────────────────────────────────────────────────────────────────
 
-def _build_queries(role: str, location: str) -> list[str]:
-    """Return 2-3 JSearch queries optimised for the requested location."""
+def _build_jsearch_queries(role: str, location: str) -> list[str]:
     loc = location.lower().strip()
 
     if loc in ("remote (worldwide)", "remote", "", "worldwide"):
         return [f"{role} remote"]
 
     if loc == "europe":
-        # Target the biggest EU tech hubs — JSearch is US-centric so we cast wide
-        return [
-            f"{role} Netherlands",
-            f"{role} Germany",
-            f"{role} remote Europe",
-        ]
+        return [f"{role} Netherlands", f"{role} Germany", f"{role} remote Europe"]
 
     if loc in ("united kingdom", "uk"):
         return [f"{role} United Kingdom", f"{role} London remote"]
@@ -124,100 +151,11 @@ def _build_queries(role: str, location: str) -> list[str]:
     if loc in ("latin america", "latam"):
         return [f"{role} Latin America remote", f"{role} Brazil remote"]
 
-    # Generic fallback: location as-is + remote
     return [f"{role} {location}", f"{role} remote"]
 
 
-# ── Location relevance filter ─────────────────────────────────────────────────
-
-def _is_relevant_for_location(job: dict, location: str) -> bool:
-    """Return True if the job is relevant for the requested location.
-
-    Remote jobs are always relevant. For region-specific searches we exclude
-    jobs clearly tied to a different region (e.g. "Senior DevOps - USA Only"
-    when user wants Europe).
-    """
-    loc = location.lower().strip()
-
-    # Remote worldwide — accept everything
-    if loc in ("remote (worldwide)", "remote", "", "worldwide"):
-        return True
-
-    is_remote: bool = bool(job.get("job_is_remote", False))
-    job_country: str = (job.get("job_country") or "").upper()
-    job_title: str = (job.get("job_title") or "").lower()
-
-    # Always keep fully remote jobs — they're accessible from anywhere
-    if is_remote:
-        # But exclude remote jobs that explicitly state US-only in their title
-        us_only_phrases = [" - usa", " - us", "usa only", "us only", "united states only", "- united states"]
-        if any(p in job_title for p in us_only_phrases):
-            return False
-        return True
-
-    if loc == "europe":
-        # Keep EU-country jobs
-        if job_country in _EU_COUNTRIES:
-            return True
-        # Exclude jobs from clearly non-EU countries (US, CA, AU, IN)
-        if job_country in _NON_EU_COUNTRIES:
-            return False
-        # Unknown country — include (benefit of the doubt)
-        return True
-
-    if loc in ("united kingdom", "uk"):
-        return job_country in ("GB", "IE") or job_country == ""
-
-    if loc in ("united states", "us", "usa"):
-        return job_country == "US" or job_country == ""
-
-    if loc == "india":
-        return job_country == "IN" or job_country == ""
-
-    if loc == "canada":
-        return job_country == "CA" or job_country == ""
-
-    # For other locations: accept all (imperfect but avoids empty results)
-    return True
-
-
-# ── Private helpers ───────────────────────────────────────────────────────────
-
-def _run_parallel_queries(api_key: str, queries: list[str]) -> list[dict]:
-    """Run multiple JSearch queries concurrently and merge deduplicated results."""
-    if len(queries) == 1:
-        return _call_jsearch(api_key, queries[0])
-
-    results: list[list[dict]] = [[] for _ in queries]
-    with ThreadPoolExecutor(max_workers=len(queries)) as pool:
-        futures = {pool.submit(_call_jsearch, api_key, q): i for i, q in enumerate(queries)}
-        for future in as_completed(futures):
-            idx = futures[future]
-            try:
-                results[idx] = future.result()
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("Parallel JSearch query %d failed: %s", idx, exc)
-
-    combined: list[dict] = []
-    for batch in results:
-        combined = _merge_jobs(combined, batch)
-    return combined
-
-
-def _merge_jobs(existing: list[dict], new_jobs: list[dict]) -> list[dict]:
-    """Append new_jobs to existing, deduplicating by job_id."""
-    seen_ids: set[str] = {j.get("job_id", "") for j in existing}
-    merged = list(existing)
-    for job in new_jobs:
-        jid = job.get("job_id", "")
-        if jid not in seen_ids:
-            seen_ids.add(jid)
-            merged.append(job)
-    return merged
-
-
 def _call_jsearch(api_key: str, query: str) -> list[dict]:
-    """Make one JSearch API call. Returns raw job list or [] on any error."""
+    """Make one JSearch API call. Returns raw job list or [] on error."""
     try:
         encoded = urllib.parse.quote(query)
         url = (
@@ -233,42 +171,158 @@ def _call_jsearch(api_key: str, query: str) -> list[dict]:
         )
         with urllib.request.urlopen(req, timeout=12) as resp:
             data = json.loads(resp.read().decode())
-        return data.get("data", [])
-    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, TimeoutError, OSError) as exc:
-        logger.warning("JSearch query '%s' failed: %s: %s", query, type(exc).__name__, exc)
+        jobs = data.get("data", [])
+        # Tag source for normalisation
+        for j in jobs:
+            j["_source"] = "jsearch"
+        return jobs
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("JSearch '%s' failed: %s", query, exc)
         return []
 
 
-def _normalise_jsearch_job(j: dict[str, Any]) -> dict[str, Any]:
-    """Map a JSearch job object to our Vacancy-like format.
+# ── Adzuna ────────────────────────────────────────────────────────────────────
 
-    Descriptions are truncated to 500 chars to stay within Gemini token limits.
-    """
+def _call_adzuna(app_id: str, app_key: str, country: str, role: str) -> list[dict]:
+    """Call Adzuna jobs API for a specific country. Returns normalised-ready list."""
+    try:
+        encoded = urllib.parse.quote(role)
+        url = (
+            f"https://api.adzuna.com/v1/api/jobs/{country}/search/1"
+            f"?app_id={app_id}&app_key={app_key}"
+            f"&results_per_page=20&what={encoded}&content-type=application/json"
+        )
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            data = json.loads(resp.read().decode())
+        results = data.get("results", [])
+        # Tag source + country for normalisation
+        for j in results:
+            j["_source"] = "adzuna"
+            j["_country"] = country.upper()
+        return results
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Adzuna[%s] '%s' failed: %s", country, role, exc)
+        return []
+
+
+# ── Location filter ───────────────────────────────────────────────────────────
+
+def _is_relevant_for_location(job: dict, location: str) -> bool:
+    loc = location.lower().strip()
+
+    if loc in ("remote (worldwide)", "remote", "", "worldwide"):
+        return True
+
+    source = job.get("_source", "jsearch")
+
+    # Adzuna jobs are already country-specific — always relevant
+    if source == "adzuna":
+        return True
+
+    # JSearch jobs — check country + remote flag
+    is_remote: bool = bool(job.get("job_is_remote", False))
+    job_country: str = (job.get("job_country") or "").upper()
+    job_title: str = (job.get("job_title") or "").lower()
+
+    if is_remote:
+        us_only = [" - usa", " - us", "usa only", "us only", "united states only", "- united states"]
+        if any(p in job_title for p in us_only):
+            return False
+        return True
+
+    if loc == "europe":
+        if job_country in _EU_COUNTRIES:
+            return True
+        if job_country in _NON_EU_COUNTRIES:
+            return False
+        return True  # unknown — include
+
+    if loc in ("united kingdom", "uk"):
+        return job_country in ("GB", "IE") or job_country == ""
+
+    if loc in ("united states", "us", "usa"):
+        return job_country == "US" or job_country == ""
+
+    if loc == "india":
+        return job_country == "IN" or job_country == ""
+
+    if loc == "canada":
+        return job_country == "CA" or job_country == ""
+
+    return True
+
+
+# ── Normalisation ─────────────────────────────────────────────────────────────
+
+def _normalise_job(j: dict[str, Any]) -> dict[str, Any]:
+    source = j.get("_source", "jsearch")
+    if source == "adzuna":
+        return _normalise_adzuna_job(j)
+    return _normalise_jsearch_job(j)
+
+
+def _normalise_jsearch_job(j: dict[str, Any]) -> dict[str, Any]:
     skills: list[str] = j.get("job_required_skills") or []
     city: str = j.get("job_city") or ""
     country: str = j.get("job_country") or ""
     is_remote: bool = bool(j.get("job_is_remote", False))
-
-    if is_remote and not city:
-        location_str = "Remote"
-    else:
-        location_str = ", ".join(filter(None, [city, country]))
+    location_str = "Remote" if (is_remote and not city) else ", ".join(filter(None, [city, country]))
 
     return {
-        "id":          (j.get("job_id") or "")[:30],
+        "id":          (j.get("job_id") or "")[:40],
         "title":       j.get("job_title") or "",
         "company":     j.get("employer_name") or "",
         "industry":    j.get("job_industry") or "Technology",
         "location":    location_str,
         "type":        j.get("job_employment_type") or "FULLTIME",
         "description": (j.get("job_description") or "")[:500],
-        "requirements": {
-            "mustHave":        skills,
-            "niceToHave":      [],
-            "yearsExperience": 0,
-        },
+        "requirements": {"mustHave": skills, "niceToHave": [], "yearsExperience": 0},
         "techStack":   skills,
         "postedDate":  j.get("job_posted_at_datetime_utc") or "",
         "applyLink":   j.get("job_apply_link") or "",
         "isRemote":    is_remote,
+        "source":      "jsearch",
     }
+
+
+def _normalise_adzuna_job(j: dict[str, Any]) -> dict[str, Any]:
+    country_code = j.get("_country", "")
+    location_obj = j.get("location", {})
+    location_parts = location_obj.get("display_name", "") if isinstance(location_obj, dict) else ""
+    company_obj = j.get("company", {})
+    company_name = company_obj.get("display_name", "") if isinstance(company_obj, dict) else ""
+    category_obj = j.get("category", {})
+    industry = category_obj.get("label", "Technology") if isinstance(category_obj, dict) else "Technology"
+
+    # Build unique ID from Adzuna's id field
+    job_id = str(j.get("id", ""))
+
+    return {
+        "id":          f"adzuna-{job_id}"[:40],
+        "title":       j.get("title") or "",
+        "company":     company_name,
+        "industry":    industry,
+        "location":    location_parts or country_code,
+        "type":        "FULLTIME",
+        "description": (j.get("description") or "")[:500],
+        "requirements": {"mustHave": [], "niceToHave": [], "yearsExperience": 0},
+        "techStack":   [],
+        "postedDate":  j.get("created") or "",
+        "applyLink":   j.get("redirect_url") or "",
+        "isRemote":    False,
+        "source":      "adzuna",
+    }
+
+
+# ── Merge helper ──────────────────────────────────────────────────────────────
+
+def _merge_jobs(existing: list[dict], new_jobs: list[dict]) -> list[dict]:
+    seen_ids: set[str] = {j.get("job_id", j.get("id", "")) for j in existing}
+    merged = list(existing)
+    for job in new_jobs:
+        jid = job.get("job_id", job.get("id", ""))
+        if jid and jid not in seen_ids:
+            seen_ids.add(jid)
+            merged.append(job)
+    return merged
