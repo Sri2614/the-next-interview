@@ -35,4 +35,5 @@ jobs:
         run: |
           gcloud builds submit \
             --config agents/cloudbuild.yaml \
-            --project thesimplifiedtech
+            --project thesimplifiedtech \
+            --async
