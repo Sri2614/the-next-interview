@@ -308,12 +308,25 @@ def _normalise_jsearch_job(j: dict[str, Any]) -> dict[str, Any]:
     is_remote: bool = bool(j.get("job_is_remote", False))
     location_str = "Remote" if (is_remote and not city) else ", ".join(filter(None, [city, country]))
 
+    # Salary extraction
+    salary_min = j.get("job_min_salary")
+    salary_max = j.get("job_max_salary")
+    salary_currency = j.get("job_salary_currency") or "USD"
+    salary_period = j.get("job_salary_period") or "YEAR"
+    salary_str = _format_salary(
+        float(salary_min) if salary_min else None,
+        float(salary_max) if salary_max else None,
+        salary_currency,
+        salary_period,
+    )
+
     return {
         "id":          (j.get("job_id") or "")[:40],
         "title":       j.get("job_title") or "",
         "company":     j.get("employer_name") or "",
         "industry":    j.get("job_industry") or "Technology",
         "location":    location_str,
+        "salaryRange": salary_str,
         "type":        j.get("job_employment_type") or "FULLTIME",
         "description": (j.get("job_description") or "")[:500],
         "requirements": {"mustHave": skills, "niceToHave": [], "yearsExperience": 0},
