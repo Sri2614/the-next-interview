@@ -46,7 +46,8 @@ steps:
           --image us-central1-docker.pkg.dev/thesimplifiedtech/the-next-interview/frontend:latest \
           --region us-central1 \
           --project thesimplifiedtech \
-          --allow-unauthenticated
+          --allow-unauthenticated \
+          --set-env-vars RAPIDAPI_KEY=2fcaab5e6bmsh3423a5d38499328p1a493ejsn2cc5e114d92d
 
 images:
   - us-central1-docker.pkg.dev/thesimplifiedtech/the-next-interview/frontend:latest

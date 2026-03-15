@@ -42,9 +42,15 @@ export default function CodeEditor({
   height = '100%',
   className = '',
 }: CodeEditorProps) {
-  const [theme, setTheme] = useState<'vs-dark' | 'light'>('vs-dark')
+  // Read current theme immediately — avoids the dark flash when in light mode
+  const [theme, setTheme] = useState<'vs-dark' | 'light'>(() => {
+    if (typeof window !== 'undefined') {
+      return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'vs-dark'
+    }
+    return 'vs-dark'
+  })
 
-  // Track theme changes from the global data-theme attribute
+  // Keep in sync whenever the user toggles the theme
   useEffect(() => {
     function syncTheme() {
       const t = document.documentElement.getAttribute('data-theme')

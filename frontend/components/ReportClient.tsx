@@ -662,6 +662,29 @@ For each topic, recommend 2-3 real online courses from Google Cloud Skills Boost
         )}
         <div className="shine-divider" />
 
+        {/* Practice CTA — shown when score is below 70 */}
+        {report.overallScore < 70 && (
+          <div className="rounded-2xl p-5 text-center space-y-3"
+            style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(168,85,247,0.12) 100%)', border: '1px solid rgba(99,102,241,0.3)' }}>
+            <div className="text-3xl">🏋️</div>
+            <div>
+              <h3 className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>
+                Build your skills before retaking
+              </h3>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+                Work through our practice library — {report.studyPlan?.length ?? 0} topics identified above map directly to problems in the library.
+              </p>
+            </div>
+            <a
+              href="/practice"
+              className="inline-block px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
+              style={{ background: 'linear-gradient(135deg, #6366f1, #a855f7)' }}
+            >
+              🚀 Go to Practice Library →
+            </a>
+          </div>
+        )}
+
         {/* Primary actions */}
         <div className="flex flex-col sm:flex-row justify-center gap-3">
           <button

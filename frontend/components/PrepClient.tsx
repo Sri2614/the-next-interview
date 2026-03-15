@@ -395,6 +395,14 @@ Return complete JSON CodeChallenge with: title, description, difficulty, languag
           }),
         })
         const data = await res.json()
+
+        // Surface setup errors clearly
+        if (!res.ok) {
+          const msg = data.error ?? `HTTP ${res.status}`
+          results.push({ passed: false, input: tc.input, expected: tc.expectedOutput, got: '', error: `Code execution error: ${msg}` })
+          break
+        }
+
         const stdout = (data.stdout ?? '').trim()
         const expected = tc.expectedOutput.trim()
         const passed = stdout === expected
@@ -406,12 +414,13 @@ Return complete JSON CodeChallenge with: title, description, difficulty, languag
           error: data.status?.id > 3 ? (data.stderr || data.compile_output || data.status?.description) : undefined,
         })
       } catch {
-        results.push({ passed: false, input: tc.input, expected: tc.expectedOutput, got: 'Network error' })
+        results.push({ passed: false, input: tc.input, expected: tc.expectedOutput, got: '', error: 'Network error — check your connection' })
+        break
       }
     }
 
     setTestResults(results)
-    setAllPassed(results.every(r => r.passed))
+    setAllPassed(results.length > 0 && results.every(r => r.passed))
     setRunningCode(false)
   }
 

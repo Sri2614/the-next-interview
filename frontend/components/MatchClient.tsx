@@ -130,11 +130,13 @@ export default function MatchClient({ resume, vacancies }: Props) {
         }),
       })
 
-      // Send resume JSON in the message — agent reads it directly, no session state needed
+      // Send resume JSON — override `role` with the user-selected targetRole so the
+      // agent always searches for the job title the user actually wants, not the CV title
       const resumeJson = JSON.stringify({
         id: resume.id,
         name: resume.name,
-        role: resume.role,
+        role: targetRole,           // ← user's chosen role, not the CV-detected one
+        detectedRole: resume.role,  // kept for context only
         yearsExperience: resume.yearsExperience,
         skills: resume.skills,
         experience: resume.experience,
@@ -149,7 +151,7 @@ export default function MatchClient({ resume, vacancies }: Props) {
         userId,
         sessionId,
         newMessage: {
-          parts: [{ text: `Match this resume against today's live vacancies for a "${targetRole}" role.${locationHint}${levelHint}\nResume:\n${resumeJson}` }],
+          parts: [{ text: `IMPORTANT: The candidate is specifically targeting a "${targetRole}" role in "${targetLocation}". Only search for and return jobs matching the "${targetRole}" title — do NOT use the detectedRole field.${locationHint}${levelHint}\nResume:\n${resumeJson}` }],
           role: 'user',
         },
       })
