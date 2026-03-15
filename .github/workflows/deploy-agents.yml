@@ -1,0 +1,34 @@
+name: Deploy Agents
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'agents/**'
+      - '.github/workflows/deploy-agents.yml'
+
+jobs:
+  deploy:
+    name: Build & Deploy to Cloud Run
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: thesimplifiedtech
+
+      - name: Submit Cloud Build
+        working-directory: agents
+        run: |
+          gcloud builds submit \
+            --config cloudbuild.yaml \
+            --project thesimplifiedtech
