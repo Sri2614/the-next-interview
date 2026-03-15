@@ -203,7 +203,7 @@ export default function MatchClient({ resume, vacancies, autoStart = false }: Pr
 
       // Sort by score descending and cache
       results.sort((a, b) => b.overallScore - a.overallScore)
-      if (results.length === 0) throw new Error('No match results returned — please try again')
+      if (results.length === 0) throw new Error('No live jobs found for this search — try a different role or region')
       saveMatchCache(resume.id, results)
       setMatchResults(results)
     } catch (err) {

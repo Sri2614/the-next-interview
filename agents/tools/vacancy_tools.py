@@ -1,19 +1,16 @@
 """Tools for loading and working with job vacancy data.
 
-fetch_live_vacancies() is the primary tool — it calls the JSearch API
-(RapidAPI) to return TODAY's real job listings from LinkedIn, Indeed,
-Glassdoor, and ZipRecruiter.
+fetch_live_vacancies() calls the JSearch API (RapidAPI) to return real job
+listings from LinkedIn, Indeed, Glassdoor, and ZipRecruiter.
 
-Falls back to 23 local mock vacancies when:
-  - RAPIDAPI_KEY env var is not set (demo mode)
-  - The API returns 0 results for the given role
-  - Any network / API error occurs
+If the specific role+location search returns 0 results, the query is broadened
+progressively (remove location → first keyword only) before giving up.
+No mock fallback — always live data or a clear failure.
 """
 
 import json
 import logging
 import os
-import pathlib
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -23,9 +20,6 @@ from google.adk.tools import ToolContext
 
 logger = logging.getLogger(__name__)
 
-DATA_DIR = pathlib.Path(__file__).parent.parent.parent / "data"
-VACANCIES_DIR = DATA_DIR / "vacancies"
-
 
 # ── Public tool ──────────────────────────────────────────────────────────────
 
@@ -33,8 +27,7 @@ def fetch_live_vacancies(tool_context: ToolContext) -> list[dict[str, Any]]:
     """Fetch real-time job vacancies from JSearch (LinkedIn/Indeed/Glassdoor).
 
     Reads search_role and search_location from ADK session state.
-    Uses RAPIDAPI_KEY env var to call the JSearch API.
-    Falls back to local mock vacancies if the key is absent or the call fails.
+    Tries up to three progressively broader queries before returning empty list.
 
     Returns:
         List of vacancy dicts ready for the vacancy_matcher to score.
@@ -44,15 +37,35 @@ def fetch_live_vacancies(tool_context: ToolContext) -> list[dict[str, Any]]:
     location: str = tool_context.state.get("search_location", "remote")
 
     if not api_key:
-        # Demo / local mode — no API key configured
-        logger.info("RAPIDAPI_KEY not set — running in demo mode with mock vacancies")
-        return _load_all_vacancies()
+        raise ValueError("RAPIDAPI_KEY is not configured on this server.")
 
+    # Progressive broadening: specific → role only → first keyword globally
+    first_keyword = role.split()[0].lower()
+    queries = [
+        f"{role} {location}",
+        role,
+        f"{first_keyword} engineer",
+    ]
+
+    for query in queries:
+        jobs = _call_jsearch(api_key, query)
+        if jobs:
+            logger.info("JSearch returned %d jobs for query: %s", len(jobs), query)
+            return [_normalise_jsearch_job(j) for j in jobs[:20]]
+
+    logger.warning("JSearch returned 0 results for all queries (role=%s, location=%s)", role, location)
+    return []
+
+
+# ── Private helpers ───────────────────────────────────────────────────────────
+
+def _call_jsearch(api_key: str, query: str) -> list[dict]:
+    """Make one JSearch API call. Returns raw job list or [] on any error."""
     try:
-        query = urllib.parse.quote(f"{role} {location}")
+        encoded = urllib.parse.quote(query)
         url = (
             "https://jsearch.p.rapidapi.com/search"
-            f"?query={query}&page=1&num_pages=1&date_posted=today&num_results=20"
+            f"?query={encoded}&page=1&num_pages=1&num_results=20"
         )
         req = urllib.request.Request(
             url,
@@ -61,22 +74,13 @@ def fetch_live_vacancies(tool_context: ToolContext) -> list[dict[str, Any]]:
                 "X-RapidAPI-Host": "jsearch.p.rapidapi.com",
             },
         )
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=12) as resp:
             data = json.loads(resp.read().decode())
-
-        jobs: list[dict] = data.get("data", [])
-        if not jobs:
-            return _load_all_vacancies()  # no results for this role today
-
-        return [_normalise_jsearch_job(j) for j in jobs[:20]]
-
+        return data.get("data", [])
     except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, TimeoutError, OSError) as exc:
-        # Network, HTTP, JSON decode, or timeout error → log and fall back to mock data
-        logger.warning("JSearch API call failed (%s: %s) — falling back to mock vacancies", type(exc).__name__, exc)
-        return _load_all_vacancies()
+        logger.warning("JSearch query '%s' failed: %s: %s", query, type(exc).__name__, exc)
+        return []
 
-
-# ── Private helpers ───────────────────────────────────────────────────────────
 
 def _normalise_jsearch_job(j: dict[str, Any]) -> dict[str, Any]:
     """Map a JSearch job object to our Vacancy-like format.
@@ -105,30 +109,3 @@ def _normalise_jsearch_job(j: dict[str, Any]) -> dict[str, Any]:
         "postedDate":  j.get("job_posted_at_datetime_utc") or "",
         "applyLink":   j.get("job_apply_link") or "",
     }
-
-
-def _load_all_vacancies() -> list[dict[str, Any]]:
-    """Load the 23 mock vacancies from disk. Used as fallback."""
-    vacancies = []
-    for vacancy_file in sorted(VACANCIES_DIR.glob("*.json")):
-        vacancies.append(json.loads(vacancy_file.read_text()))
-    return vacancies
-
-
-def load_vacancy(vacancy_id: str) -> dict[str, Any]:
-    """Load a specific job vacancy by its ID.
-
-    Args:
-        vacancy_id: The vacancy identifier (e.g., 'senior-java-fintech')
-
-    Returns:
-        Vacancy data as a dictionary, or error dict if not found.
-    """
-    vacancy_path = VACANCIES_DIR / f"{vacancy_id}.json"
-    if not vacancy_path.exists():
-        available = [f.stem for f in VACANCIES_DIR.glob("*.json")]
-        return {
-            "error": f"Vacancy '{vacancy_id}' not found.",
-            "available_vacancies": available,
-        }
-    return json.loads(vacancy_path.read_text())

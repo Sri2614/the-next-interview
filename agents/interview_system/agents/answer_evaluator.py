@@ -2,7 +2,6 @@
 
 from google.adk.agents import LlmAgent
 from google.genai import types
-from tools.vacancy_tools import load_vacancy
 
 answer_evaluator_agent = LlmAgent(
     name="answer_evaluator",
@@ -16,10 +15,7 @@ answer_evaluator_agent = LlmAgent(
     ),
     instruction="""You are an experienced technical interviewer evaluating a candidate's responses.
 
-You have access to:
-- 'generated_questions' in session state: the questions with their keyPoints
-- 'candidate_answers' in session state: the candidate's responses as {questionId: answerText}
-- The vacancy details via load_vacancy
+The user message contains all questions and answers as JSON — use that data directly.
 
 For EACH answered question, produce an AnswerEvaluation:
 - **questionId**: matches the question id
@@ -44,8 +40,7 @@ Be honest but encouraging. The goal is to help the candidate improve.
 Focus on the GAP between their answer and the ideal answer.
 
 Return JSON: { "evaluations": [...], "evaluatedAt": "...", "vacancyId": "..." }
-Do not call any other tools — just return the JSON.
 """,
-    tools=[load_vacancy],
+    tools=[],
     output_key="answer_evaluations",
 )
