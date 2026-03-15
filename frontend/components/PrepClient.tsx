@@ -41,6 +41,7 @@ export default function PrepClient({ vacancy }: Props) {
 
   const [revealedAnswers, setRevealedAnswers] = useState<Set<string>>(new Set())
   const [expandedSteps, setExpandedSteps] = useState(false)
+  const [challengeLeftTab, setChallengeLeftTab] = useState<'description' | 'solution' | 'followups'>('description')
 
   const [userCode, setUserCode] = useState<string>('')
   const [codeLanguage, setCodeLanguage] = useState<'python' | 'javascript' | 'java'>('python')
@@ -761,178 +762,271 @@ Return complete JSON CodeChallenge with: title, description, difficulty, languag
 
       {/* Challenge Tab */}
       {tab === 'challenge' && (
-        <div className="space-y-5">
+        <div>
           {!challenge ? (
-            <div className="text-center py-16 space-y-5">
-              <div className="text-6xl">💻</div>
-              <div>
-                <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Generate Coding Challenge</h2>
-                <p className="mt-2" style={{ color: 'var(--text-secondary)' }}>
-                  A realistic coding task from the {vacancy.industry} industry with a full step-by-step solution.
+            /* ── Generate screen ── */
+            <div className="flex flex-col items-center justify-center py-20 space-y-6">
+              <div className="w-20 h-20 rounded-2xl flex items-center justify-center text-4xl"
+                style={{ background: 'linear-gradient(135deg,rgba(99,102,241,.15),rgba(168,85,247,.15))', border: '1px solid rgba(99,102,241,.3)' }}>
+                💻
+              </div>
+              <div className="text-center space-y-2 max-w-md">
+                <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Coding Challenge</h2>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                  Get a realistic coding problem tailored to <strong style={{ color: 'var(--text-primary)' }}>{vacancy.title}</strong> at {vacancy.company} — with full step-by-step solution and live code execution.
                 </p>
               </div>
-              {challengeError && <p className="text-sm" style={{ color: 'var(--error)' }}>{challengeError}</p>}
+              {challengeError && (
+                <p className="text-sm px-4 py-2 rounded-xl" style={{ background: 'rgba(239,68,68,.1)', color: 'var(--error)', border: '1px solid rgba(239,68,68,.2)' }}>{challengeError}</p>
+              )}
               {challengeLoading && challengeText && (
-                <div className="max-w-xl mx-auto text-left rounded-xl p-4 text-xs font-mono overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-secondary)', maxHeight: '150px', overflow: 'auto' }}>
-                  {challengeText.slice(-400)}
-                  <span className="streaming-cursor" />
+                <div className="w-full max-w-lg rounded-xl p-4 text-xs font-mono" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-secondary)', maxHeight: 120, overflow: 'hidden' }}>
+                  {challengeText.slice(-300)}<span className="streaming-cursor" />
                 </div>
               )}
               <button
                 onClick={generateChallenge}
                 disabled={challengeLoading}
-                className="px-8 py-3 rounded-xl text-white font-semibold transition-all disabled:opacity-60"
-                style={{ background: 'var(--accent)' }}
+                className="px-8 py-3.5 rounded-2xl text-white font-semibold text-sm transition-all disabled:opacity-60 flex items-center gap-2"
+                style={{ background: 'linear-gradient(135deg,#6366f1,#a855f7)', boxShadow: challengeLoading ? 'none' : '0 8px 24px rgba(99,102,241,.35)' }}
               >
-                {challengeLoading ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
-                    Generating challenge...
-                  </span>
-                ) : 'Generate Challenge →'}
+                {challengeLoading
+                  ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Generating…</>
+                  : <><span>⚡</span>Generate Challenge</>}
               </button>
             </div>
           ) : (
-            <div style={{ display: 'flex', gap: 16, height: 600, flexWrap: 'wrap' }}>
-              {/* LEFT PANE — problem description */}
-              <div style={{ width: 'clamp(280px, 45%, 100%)', flex: '1 1 280px', overflow: 'auto', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {/* Title + meta */}
-                <div>
-                  <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{challenge.title}</h2>
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <span className={`text-xs px-2.5 py-0.5 rounded-full badge-${challenge.difficulty}`}>{challenge.difficulty}</span>
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>~{challenge.estimatedMinutes} mins</span>
-                    <span className="text-xs font-medium" style={{ color: 'var(--accent)' }}>{challenge.language}</span>
+            /* ── Split-pane IDE ── */
+            <div style={{ display: 'flex', gap: 0, height: 680, borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)' }}>
+
+              {/* ════ LEFT PANE — Problem ════ */}
+              <div style={{ width: '44%', display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--border)', background: 'var(--bg-card)' }}>
+
+                {/* Problem header */}
+                <div style={{ padding: '16px 20px 0', flexShrink: 0 }}>
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <h2 className="text-base font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>{challenge.title}</h2>
+                    <button
+                      onClick={() => { setChallenge(null); setUserCode(''); setTestResults([]); setAllPassed(null) }}
+                      className="flex-shrink-0 text-xs px-2.5 py-1 rounded-lg transition-opacity opacity-50 hover:opacity-100"
+                      style={{ background: 'var(--bg-base)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                      title="Generate new challenge"
+                    >↺ New</button>
                   </div>
-                </div>
+                  <div className="flex items-center gap-2 flex-wrap mb-3">
+                    <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${
+                      challenge.difficulty === 'junior' ? 'badge-junior' :
+                      challenge.difficulty === 'mid' ? 'badge-mid' :
+                      'badge-senior'
+                    }`}>{challenge.difficulty}</span>
+                    <span className="text-xs flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+                      <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.5"/><path d="M6 3.5V6l1.5 1.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                      ~{challenge.estimatedMinutes} min
+                    </span>
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-md" style={{ background: 'rgba(99,102,241,.12)', color: 'var(--accent)' }}>{challenge.language}</span>
+                  </div>
 
-                {/* Description */}
-                <div className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                  <Md>{toStr(challenge.description)}</Md>
-                </div>
-
-                {/* Test Cases */}
-                {toArr(challenge.testCases).length > 0 && (
-                  <div className="space-y-2">
-                    <h3 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Test Cases</h3>
-                    {toArr(challenge.testCases).map((tc, i) => (
-                      <div key={i} className="rounded-xl p-3 text-xs" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}>
-                        {tc.description && (
-                          <p className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
-                            {tc.description}
-                            {tc.isEdgeCase && <span className="ml-2 px-1.5 py-0.5 rounded" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>Edge case</span>}
-                          </p>
-                        )}
-                        <p style={{ color: 'var(--text-muted)' }}>Input: <code style={{ color: '#94a3b8' }}>{tc.input}</code></p>
-                        <p style={{ color: 'var(--text-muted)' }}>Expected: <code style={{ color: 'var(--success)' }}>{tc.expectedOutput}</code></p>
-                      </div>
+                  {/* Left tabs */}
+                  <div className="flex gap-0" style={{ borderBottom: '1px solid var(--border)' }}>
+                    {(['description','solution','followups'] as const).map(t => (
+                      <button
+                        key={t}
+                        onClick={() => setChallengeLeftTab(t)}
+                        className="px-3 py-2 text-xs font-semibold transition-colors relative"
+                        style={{
+                          color: challengeLeftTab === t ? 'var(--accent)' : 'var(--text-muted)',
+                          background: 'transparent',
+                          borderBottom: challengeLeftTab === t ? '2px solid var(--accent)' : '2px solid transparent',
+                          marginBottom: -1,
+                        }}
+                      >
+                        {t === 'description' ? '📄 Problem' : t === 'solution' ? '💡 Solution' : '🔗 Follow-ups'}
+                      </button>
                     ))}
                   </div>
-                )}
+                </div>
 
-                {/* Solution accordion */}
-                <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-                  <button
-                    onClick={() => setExpandedSteps(!expandedSteps)}
-                    className="w-full flex items-center justify-between px-4 py-3 text-left"
-                    style={{ background: 'var(--bg-base)' }}
-                  >
-                    <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                      {expandedSteps ? '▲' : '▼'} View Solution
-                    </span>
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      {toArr(challenge.solution?.steps).length} steps · {challenge.solution?.timeComplexity}
-                    </span>
-                  </button>
-                  {expandedSteps && (
-                    <div className="p-4 space-y-5" style={{ borderTop: '1px solid var(--border)' }}>
-                      {toArr(challenge.solution?.steps).map((rawStep, idx) => {
-                        const step = normalizeStep(rawStep, idx)
-                        return (
-                          <div key={step.stepNumber} className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}>
-                                {step.stepNumber}
-                              </div>
-                              {step.title && (
-                                <h4 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{step.title}</h4>
+                {/* Scrollable content */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 20px' }}>
+
+                  {/* ── DESCRIPTION TAB ── */}
+                  {challengeLeftTab === 'description' && (
+                    <div className="space-y-5">
+                      <div className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                        <Md>{toStr(challenge.description)}</Md>
+                      </div>
+
+                      {toArr(challenge.testCases).length > 0 && (
+                        <div className="space-y-3">
+                          <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Examples</h3>
+                          {toArr(challenge.testCases).filter(tc => !tc.isHidden).map((tc, i) => (
+                            <div key={i} className="rounded-xl overflow-hidden text-xs" style={{ border: '1px solid var(--border)' }}>
+                              {tc.description && (
+                                <div className="px-3 py-1.5 font-medium flex items-center gap-2" style={{ background: 'var(--bg-base)', borderBottom: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
+                                  {tc.description}
+                                  {tc.isEdgeCase && <span className="px-1.5 py-0.5 rounded text-xs" style={{ background: 'rgba(245,158,11,.1)', color: '#f59e0b' }}>edge</span>}
+                                </div>
                               )}
-                            </div>
-                            {step.explanation && (
-                              <div className="ml-8 text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                                <Md>{step.explanation}</Md>
+                              <div className="p-3 space-y-1.5" style={{ background: 'var(--bg-card)' }}>
+                                <div><span style={{ color: 'var(--text-muted)' }}>Input: </span><code className="font-mono" style={{ color: '#94a3b8' }}>{tc.input}</code></div>
+                                <div><span style={{ color: 'var(--text-muted)' }}>Output: </span><code className="font-mono font-semibold" style={{ color: 'var(--success)' }}>{tc.expectedOutput}</code></div>
                               </div>
-                            )}
-                            {step.codeSnippet && (
-                              <pre className="ml-8 rounded-lg p-2 overflow-x-auto text-xs" style={{ background: '#0d1117' }}>
-                                <code style={{ color: '#e2e8f0' }}>{step.codeSnippet}</code>
-                              </pre>
-                            )}
-                          </div>
-                        )
-                      })}
-                      <div className="rounded-xl p-3 space-y-1" style={{ background: 'rgba(5,150,105,0.06)', border: '1px solid rgba(5,150,105,0.18)' }}>
-                        <p className="text-xs font-semibold" style={{ color: 'var(--success)' }}>Why It Works</p>
-                        <div className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                          <Md>{toStr(challenge.solution?.whyItWorks)}</Md>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div className="rounded-xl p-2" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}>
-                          <p className="font-semibold mb-0.5" style={{ color: 'var(--text-primary)' }}>Time</p>
-                          <p style={{ color: 'var(--accent)' }}>{challenge.solution?.timeComplexity}</p>
-                        </div>
-                        <div className="rounded-xl p-2" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}>
-                          <p className="font-semibold mb-0.5" style={{ color: 'var(--text-primary)' }}>Space</p>
-                          <p style={{ color: 'var(--accent)' }}>{challenge.solution?.spaceComplexity}</p>
-                        </div>
-                      </div>
-                      {toArr(challenge.solution?.commonMistakes).length > 0 && (
-                        <div className="space-y-1">
-                          <p className="text-xs font-semibold" style={{ color: 'var(--error)' }}>Common Mistakes</p>
-                          {toArr(challenge.solution?.commonMistakes).map((m, i) => (
-                            <div key={i} className="text-xs flex gap-1.5" style={{ color: 'var(--text-secondary)' }}>
-                              <span>⚠️</span>
-                              <Md>{toStr(m)}</Md>
                             </div>
                           ))}
                         </div>
                       )}
-                      {toArr(challenge.followUps).length > 0 && (
-                        <div className="space-y-1">
-                          <p className="text-xs font-semibold" style={{ color: '#f59e0b' }}>Follow-Up Questions</p>
-                          {toArr(challenge.followUps).map((fu, i) => (
-                            <p key={i} className="text-xs" style={{ color: 'var(--text-secondary)' }}>→ {fu}</p>
+
+                      {toArr(challenge.relatedConcepts).length > 0 && (
+                        <div className="space-y-2">
+                          <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Related Concepts</h3>
+                          <div className="flex flex-wrap gap-1.5">
+                            {toArr(challenge.relatedConcepts).map((c: string, i: number) => (
+                              <span key={i} className="text-xs px-2.5 py-1 rounded-full" style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>{c}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ── SOLUTION TAB ── */}
+                  {challengeLeftTab === 'solution' && (
+                    <div className="space-y-4">
+                      {/* Complexity */}
+                      <div className="grid grid-cols-2 gap-3">
+                        {[['⏱ Time', challenge.solution?.timeComplexity], ['🗂 Space', challenge.solution?.spaceComplexity]].map(([label, val]) => (
+                          <div key={label as string} className="rounded-xl p-3" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}>
+                            <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{label as string}</p>
+                            <p className="text-sm font-bold font-mono" style={{ color: 'var(--accent)' }}>{val as string}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Steps */}
+                      <div className="space-y-4">
+                        {toArr(challenge.solution?.steps).map((rawStep, idx) => {
+                          const step = normalizeStep(rawStep, idx)
+                          return (
+                            <div key={step.stepNumber} className="flex gap-3">
+                              <div className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold mt-0.5"
+                                style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}>
+                                {step.stepNumber}
+                              </div>
+                              <div className="flex-1 min-w-0 space-y-1.5">
+                                {step.title && <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{step.title}</p>}
+                                {step.explanation && (
+                                  <div className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                                    <Md>{step.explanation}</Md>
+                                  </div>
+                                )}
+                                {step.codeSnippet && (
+                                  <pre className="rounded-lg p-3 overflow-x-auto text-xs leading-relaxed" style={{ background: '#0d1117', border: '1px solid rgba(255,255,255,.06)' }}>
+                                    <code style={{ color: '#e2e8f0' }}>{step.codeSnippet}</code>
+                                  </pre>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+
+                      {/* Why it works */}
+                      {challenge.solution?.whyItWorks && (
+                        <div className="rounded-xl p-4 space-y-1" style={{ background: 'rgba(5,150,105,.06)', border: '1px solid rgba(5,150,105,.2)' }}>
+                          <p className="text-xs font-bold" style={{ color: 'var(--success)' }}>✅ Why It Works</p>
+                          <div className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                            <Md>{toStr(challenge.solution.whyItWorks)}</Md>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Common mistakes */}
+                      {toArr(challenge.solution?.commonMistakes).length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-xs font-bold" style={{ color: 'var(--error)' }}>⚠️ Common Mistakes</p>
+                          {toArr(challenge.solution?.commonMistakes).map((m, i) => (
+                            <div key={i} className="flex gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                              <span className="flex-shrink-0 mt-0.5">•</span><Md>{toStr(m)}</Md>
+                            </div>
                           ))}
                         </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ── FOLLOW-UPS TAB ── */}
+                  {challengeLeftTab === 'followups' && (
+                    <div className="space-y-5">
+                      {toArr(challenge.followUps).length > 0 ? (
+                        <div className="space-y-3">
+                          <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Follow-Up Questions</h3>
+                          {toArr(challenge.followUps).map((fu, i) => (
+                            <div key={i} className="flex gap-3 p-3 rounded-xl text-sm" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
+                              <span className="font-bold flex-shrink-0" style={{ color: 'var(--accent)' }}>{i + 1}.</span>
+                              <span>{fu}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No follow-ups for this challenge.</p>
                       )}
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* RIGHT PANE — editor + results */}
-              <div style={{ flex: '1 1 320px', display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
-                {/* Top bar: language selector + Run button */}
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <select
-                    value={codeLanguage}
-                    onChange={e => setCodeLanguage(e.target.value as 'python' | 'javascript' | 'java')}
-                    className="rounded-lg px-3 py-1.5 text-sm font-medium"
-                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', outline: 'none' }}
-                  >
-                    <option value="python">Python</option>
-                    <option value="javascript">JavaScript</option>
-                    <option value="java">Java</option>
-                  </select>
-                  <button
-                    onClick={runCode}
-                    disabled={runningCode}
-                    className="px-4 py-1.5 rounded-lg text-sm font-semibold text-white transition-all disabled:opacity-60"
-                    style={{ background: 'var(--accent)' }}
-                  >
-                    {runningCode ? '⏳ Running...' : '▶ Run Code'}
-                  </button>
+              {/* ════ RIGHT PANE — Editor ════ */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', minWidth: 0 }}>
+
+                {/* Editor toolbar */}
+                <div className="flex items-center justify-between px-3 py-2 gap-2 flex-shrink-0"
+                  style={{ background: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
+                  {/* Language pills */}
+                  <div className="flex gap-1">
+                    {(['python','javascript','java'] as const).map(lang => (
+                      <button
+                        key={lang}
+                        onClick={() => {
+                          setCodeLanguage(lang)
+                          setUserCode(
+                            lang === 'python' ? (challenge.starterCode ?? '') :
+                            lang === 'javascript' ? (challenge.starterCode ?? '') :
+                            (challenge.starterCode ?? '')
+                          )
+                        }}
+                        className="px-2.5 py-1 rounded-md text-xs font-semibold transition-all"
+                        style={{
+                          background: codeLanguage === lang ? 'var(--accent)' : 'transparent',
+                          color: codeLanguage === lang ? '#fff' : 'var(--text-muted)',
+                          border: codeLanguage === lang ? 'none' : '1px solid var(--border)',
+                        }}
+                      >
+                        {lang === 'python' ? '🐍 Python' : lang === 'javascript' ? '🟡 JS' : '☕ Java'}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* Reset code */}
+                    <button
+                      onClick={() => setUserCode(challenge.starterCode ?? '')}
+                      className="text-xs px-2.5 py-1 rounded-md transition-opacity opacity-60 hover:opacity-100"
+                      style={{ background: 'var(--bg-base)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                      title="Reset to starter code"
+                    >↺ Reset</button>
+
+                    {/* Run Code */}
+                    <button
+                      onClick={runCode}
+                      disabled={runningCode}
+                      className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold text-white transition-all disabled:opacity-60"
+                      style={{ background: runningCode ? '#555' : 'linear-gradient(135deg,#10b981,#059669)', boxShadow: runningCode ? 'none' : '0 2px 8px rgba(16,185,129,.4)' }}
+                    >
+                      {runningCode
+                        ? <><span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Running…</>
+                        : <><svg width="10" height="12" viewBox="0 0 10 12" fill="white"><path d="M0 0l10 6-10 6V0z"/></svg>Run Code</>}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Monaco editor */}
@@ -945,30 +1039,61 @@ Return complete JSON CodeChallenge with: title, description, difficulty, languag
                   />
                 </div>
 
-                {/* Test results */}
+                {/* ── Results panel ── */}
                 {testResults.length > 0 && (
-                  <div className="rounded-xl p-3 space-y-2" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', maxHeight: 200, overflow: 'auto' }}>
-                    {allPassed && (
-                      <p className="text-sm font-semibold" style={{ color: 'var(--success)' }}>All tests passed!</p>
-                    )}
-                    {testResults.map((r, i) => (
-                      <div
-                        key={i}
-                        className="rounded-lg p-2 text-xs space-y-0.5"
-                        style={{
-                          background: r.passed ? 'rgba(5,150,105,0.08)' : 'rgba(239,68,68,0.08)',
-                          border: `1px solid ${r.passed ? 'rgba(5,150,105,0.2)' : 'rgba(239,68,68,0.2)'}`,
-                        }}
-                      >
-                        <p className="font-semibold" style={{ color: r.passed ? 'var(--success)' : 'var(--error)' }}>
-                          {r.passed ? '✅' : '❌'} Test {i + 1}
-                        </p>
-                        <p style={{ color: 'var(--text-muted)' }}>Input: <code style={{ color: '#94a3b8' }}>{r.input.length > 40 ? r.input.slice(0, 40) + '…' : r.input}</code></p>
-                        <p style={{ color: 'var(--text-muted)' }}>Expected: <code style={{ color: 'var(--success)' }}>{r.expected}</code></p>
-                        {!r.passed && <p style={{ color: 'var(--text-muted)' }}>Got: <code style={{ color: 'var(--error)' }}>{r.got.length > 60 ? r.got.slice(0, 60) + '…' : r.got}</code></p>}
-                        {r.error && <p style={{ color: 'var(--error)' }}>{r.error.length > 80 ? r.error.slice(0, 80) + '…' : r.error}</p>}
+                  <div style={{ flexShrink: 0, maxHeight: 220, display: 'flex', flexDirection: 'column', borderTop: '1px solid var(--border)' }}>
+                    {/* Status bar */}
+                    <div className="flex items-center justify-between px-4 py-2 flex-shrink-0"
+                      style={{ background: allPassed ? 'rgba(5,150,105,.12)' : 'rgba(239,68,68,.08)', borderBottom: '1px solid var(--border)' }}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold" style={{ color: allPassed ? 'var(--success)' : 'var(--error)' }}>
+                          {allPassed ? '✅ All tests passed!' : `❌ ${testResults.filter(r => !r.passed).length} test${testResults.filter(r => !r.passed).length > 1 ? 's' : ''} failing`}
+                        </span>
+                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                          {testResults.filter(r => r.passed).length}/{testResults.length} passed
+                        </span>
                       </div>
-                    ))}
+                      <div className="flex gap-1">
+                        {testResults.map((r, i) => (
+                          <div key={i} className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
+                            style={{ background: r.passed ? 'rgba(5,150,105,.2)' : 'rgba(239,68,68,.2)', color: r.passed ? 'var(--success)' : 'var(--error)' }}>
+                            {r.passed ? '✓' : '✗'}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Individual results */}
+                    <div style={{ overflowY: 'auto', flex: 1 }}>
+                      {testResults.map((r, i) => (
+                        <div key={i} className="px-4 py-3 text-xs space-y-1"
+                          style={{ borderBottom: i < testResults.length - 1 ? '1px solid var(--border)' : 'none', background: r.passed ? 'rgba(5,150,105,.04)' : 'rgba(239,68,68,.04)' }}>
+                          <div className="flex items-center gap-2 font-semibold mb-1.5"
+                            style={{ color: r.passed ? 'var(--success)' : 'var(--error)' }}>
+                            {r.passed ? '✅' : '❌'} Test Case {i + 1}
+                          </div>
+                          <div className="grid grid-cols-3 gap-3">
+                            <div>
+                              <p className="mb-0.5 font-medium" style={{ color: 'var(--text-muted)' }}>Input</p>
+                              <code className="font-mono" style={{ color: '#94a3b8' }}>{r.input.length > 35 ? r.input.slice(0,35)+'…' : r.input}</code>
+                            </div>
+                            <div>
+                              <p className="mb-0.5 font-medium" style={{ color: 'var(--text-muted)' }}>Expected</p>
+                              <code className="font-mono font-semibold" style={{ color: 'var(--success)' }}>{r.expected}</code>
+                            </div>
+                            <div>
+                              <p className="mb-0.5 font-medium" style={{ color: 'var(--text-muted)' }}>{r.passed ? 'Got' : 'Got'}</p>
+                              <code className="font-mono font-semibold" style={{ color: r.passed ? 'var(--success)' : 'var(--error)' }}>
+                                {r.got.length > 35 ? r.got.slice(0,35)+'…' : r.got || '(empty)'}
+                              </code>
+                            </div>
+                          </div>
+                          {r.error && (
+                            <p className="mt-1 font-mono" style={{ color: 'var(--error)' }}>{r.error.slice(0, 100)}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
