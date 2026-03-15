@@ -77,7 +77,7 @@ export default function ResumeUpload() {
       await fetch(`${ADK_BASE}/apps/${APP}/users/${userId}/sessions/${sessionId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pdf_base64: base64 }),
+        body: JSON.stringify({ state: { pdf_base64: base64 } }),
       })
 
       const events = await collectSSEEvents(`${ADK_BASE}/run_sse`, {

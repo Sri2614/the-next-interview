@@ -131,8 +131,10 @@ export default function MatchClient({ resume, vacancies, autoStart = false }: Pr
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          search_role: targetRole,
-          search_location: targetLocation,
+          state: {
+            search_role: targetRole,
+            search_location: targetLocation,
+          },
         }),
       })
 
