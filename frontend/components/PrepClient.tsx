@@ -40,7 +40,6 @@ export default function PrepClient({ vacancy }: Props) {
   const [jdInput, setJdInput] = useState('')
 
   const [revealedAnswers, setRevealedAnswers] = useState<Set<string>>(new Set())
-  const [expandedSteps, setExpandedSteps] = useState(false)
   const [challengeLeftTab, setChallengeLeftTab] = useState<'description' | 'solution' | 'followups'>('description')
 
   const [userCode, setUserCode] = useState<string>('')
@@ -131,6 +130,7 @@ export default function PrepClient({ vacancy }: Props) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
     }).catch(() => { /* ignore — warmup is best-effort */ })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vacancy.id])
 
   // Robust ADK response parser — handles stateDelta (object or string) + content.parts text fallback
