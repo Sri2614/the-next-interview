@@ -6,6 +6,8 @@ import type { MockResume } from '@/types/resume'
 import type { Vacancy, MatchResult } from '@/types/vacancy'
 import type { PrepSession } from '@/types/session'
 import { savePrepSession, saveMatchCache, getMatchCache, saveLiveVacancy } from '@/lib/session'
+import { saveMatchesToFirestore, savePrepSessionToFirestore } from '@/lib/firestore'
+import { useAuth } from '@/contexts/AuthContext'
 import { collectSSEEvents } from '@/lib/adk-client'
 import { ADK_BASE } from '@/lib/constants'
 
@@ -70,6 +72,7 @@ interface Props {
 
 export default function MatchClient({ resume, vacancies }: Props) {
   const router = useRouter()
+  const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [progressStep, setProgressStep] = useState(0)
   const [matchResults, setMatchResults] = useState<MatchResult[] | null>(null)
@@ -194,6 +197,8 @@ export default function MatchClient({ resume, vacancies }: Props) {
       results.sort((a, b) => b.overallScore - a.overallScore)
       if (results.length === 0) throw new Error('No live jobs found for this search — try a different role or region')
       saveMatchCache(resume.id, results)
+      // Save to Firestore if signed in (non-blocking)
+      if (user) saveMatchesToFirestore(user.uid, targetRole, targetLocation, results)
       setMatchResults(results)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to connect to AI agents')
@@ -235,6 +240,8 @@ export default function MatchClient({ resume, vacancies }: Props) {
       createdAt: new Date().toISOString(),
     }
     savePrepSession(session)
+    // Save to Firestore if signed in (non-blocking)
+    if (user) savePrepSessionToFirestore(user.uid, session)
 
     if (localVacancy) {
       // Mock vacancy — use the existing server-rendered prep page

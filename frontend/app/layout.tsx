@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ThemeProvider, ThemeToggle } from '@/components/ThemeProvider'
+import { AuthProvider } from '@/contexts/AuthContext'
+import AuthButton from '@/components/AuthButton'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -20,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
         <ThemeProvider>
+          <AuthProvider>
           <nav
             className="sticky top-0 z-50"
             style={{
@@ -49,12 +52,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
               <div className="flex items-center gap-3">
                 <ThemeToggle />
+                <AuthButton />
               </div>
             </div>
           </nav>
           <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
             {children}
           </main>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

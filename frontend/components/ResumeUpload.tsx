@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import type { MockResume } from '@/types/resume'
 import { saveCustomResume } from '@/lib/session'
+import { saveResumeToFirestore } from '@/lib/firestore'
+import { useAuth } from '@/contexts/AuthContext'
 import { collectSSEEvents } from '@/lib/adk-client'
 import { ADK_BASE } from '@/lib/constants'
 
@@ -25,6 +27,7 @@ const PDF_PARSE_STEPS = [
 
 export default function ResumeUpload() {
   const router = useRouter()
+  const { user } = useAuth()
   const inputRef = useRef<HTMLInputElement>(null)
   const [state, setState] = useState<UploadState>('idle')
   const [error, setError] = useState<string | null>(null)
@@ -130,6 +133,8 @@ export default function ResumeUpload() {
 
       resume.id = 'custom'
       saveCustomResume(resume)
+      // Save to Firestore if signed in (non-blocking)
+      if (user) saveResumeToFirestore(user.uid, resume)
       setParsedResume(resume)
       setEditFields({ name: resume.name, role: resume.role, yearsExperience: resume.yearsExperience, summary: resume.summary ?? '' })
       setState('done')
