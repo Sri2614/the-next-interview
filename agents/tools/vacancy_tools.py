@@ -48,6 +48,45 @@ _EU_COUNTRIES = {
 _NON_EU_COUNTRIES = {"US", "CA", "AU", "IN", "MX", "BR", "SG", "PH"}
 
 
+# ── Salary formatting ────────────────────────────────────────────────────────
+
+# Currency symbols by ISO code. Extend as needed.
+_CURRENCY_SYMBOLS: dict[str, str] = {
+    "USD": "$", "GBP": "£", "EUR": "€", "CAD": "CA$",
+    "AUD": "A$", "INR": "₹", "CHF": "CHF", "SEK": "SEK",
+    "PLN": "PLN", "CZK": "CZK",
+}
+
+
+def _format_salary(
+    min_val: float | None,
+    max_val: float | None,
+    currency: str = "USD",
+    period: str = "YEAR",
+) -> str:
+    """Format a salary range as a human-readable string.
+
+    Returns "" if both min and max are None/0.
+    Examples: "$120K-$160K/yr", "£45K-£55K/yr", "From $120K/yr"
+    """
+    if not min_val and not max_val:
+        return ""
+
+    sym = _CURRENCY_SYMBOLS.get(currency.upper(), currency.upper() + " ")
+    suffix = "/yr" if period.upper() in ("YEAR", "YEARLY", "ANNUAL", "") else f"/{period.lower()}"
+
+    def _fmt(v: float) -> str:
+        if v >= 1000:
+            return f"{sym}{v / 1000:.0f}K"
+        return f"{sym}{v:.0f}"
+
+    if min_val and max_val:
+        return f"{_fmt(min_val)}-{_fmt(max_val)}{suffix}"
+    if min_val:
+        return f"From {_fmt(min_val)}{suffix}"
+    return f"Up to {_fmt(max_val)}{suffix}"
+
+
 # ── Public tool ──────────────────────────────────────────────────────────────
 
 def fetch_live_vacancies(tool_context: ToolContext) -> list[dict[str, Any]]:
