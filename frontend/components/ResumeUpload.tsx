@@ -9,6 +9,13 @@ import { ADK_BASE } from '@/lib/constants'
 
 type UploadState = 'idle' | 'reading' | 'parsing' | 'done' | 'error'
 
+interface EditableFields {
+  name: string
+  role: string
+  yearsExperience: number
+  summary: string
+}
+
 const PDF_PARSE_STEPS = [
   { label: 'Extracting text with Document AI', sub: 'Processing PDF layout and structure…' },
   { label: 'Identifying your skills',          sub: 'Languages, frameworks, tools, cloud…' },
@@ -24,6 +31,9 @@ export default function ResumeUpload() {
   const [parsedResume, setParsedResume] = useState<MockResume | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [parseStep, setParseStep] = useState(0)
+  const [editMode, setEditMode] = useState(false)
+  const [editFields, setEditFields] = useState<EditableFields | null>(null)
+  const [showFullDetails, setShowFullDetails] = useState(false)
 
   // Advance through progress steps while parsing
   useEffect(() => {
@@ -121,6 +131,7 @@ export default function ResumeUpload() {
       resume.id = 'custom'
       saveCustomResume(resume)
       setParsedResume(resume)
+      setEditFields({ name: resume.name, role: resume.role, yearsExperience: resume.yearsExperience, summary: resume.summary ?? '' })
       setState('done')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to parse resume')
@@ -149,68 +160,208 @@ export default function ResumeUpload() {
 
   const isLoading = state === 'reading' || state === 'parsing'
 
-  // ── Success ────────────────────────────────────────────────────────────────
-  if (state === 'done' && parsedResume) {
+  function saveEdits() {
+    if (!parsedResume || !editFields) return
+    const updated: MockResume = { ...parsedResume, ...editFields }
+    saveCustomResume(updated)
+    setParsedResume(updated)
+    setEditMode(false)
+  }
+
+  // ── Success — full review card ─────────────────────────────────────────────
+  if (state === 'done' && parsedResume && editFields) {
     const allSkills = [
       ...parsedResume.skills.languages,
       ...parsedResume.skills.frameworks,
       ...parsedResume.skills.tools,
-    ].slice(0, 10)
+      ...parsedResume.skills.cloud,
+      ...parsedResume.skills.concepts,
+    ]
 
     return (
-      <div
-        className="rounded-2xl p-5 space-y-4"
-        style={{ background: 'var(--bg-card)', border: '1px solid var(--accent)', borderLeft: '3px solid var(--accent)' }}
-      >
-        <div className="flex items-center gap-3">
-          <div
-            className="w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0"
-            style={{ background: 'var(--accent-soft)' }}
-          >
-            ✅
-          </div>
-          <div>
-            <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>Resume parsed successfully</div>
-            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Powered by Google Document AI + Gemini 2.5 Flash</div>
+      <div className="space-y-4">
+        {/* Header bar */}
+        <div
+          className="rounded-2xl p-4 flex items-center gap-3"
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--accent)', borderLeft: '3px solid var(--accent)' }}
+        >
+          <div className="w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0" style={{ background: 'var(--accent-soft)' }}>✅</div>
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Resume parsed — please review before matching</div>
+            <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Document AI + Gemini 2.5 Flash · Check for any OCR errors below</div>
           </div>
         </div>
 
-        <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--bg-base)' }}>
-          <div>
-            <div className="font-semibold text-lg" style={{ color: 'var(--text-primary)' }}>{parsedResume.name}</div>
-            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              {parsedResume.role} · {parsedResume.yearsExperience}yr experience
-            </div>
+        {/* Profile summary — editable */}
+        <div className="rounded-2xl p-5 space-y-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>📋 Profile Summary</h3>
+            <button
+              onClick={() => setEditMode(v => !v)}
+              className="text-xs px-2.5 py-1 rounded-lg flex-shrink-0"
+              style={{ background: editMode ? 'var(--accent-soft)' : 'var(--bg-base)', color: editMode ? 'var(--accent)' : 'var(--text-muted)', border: '1px solid var(--border)' }}
+            >
+              {editMode ? '✕ Cancel' : '✏️ Edit'}
+            </button>
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {allSkills.map(s => (
-              <span
-                key={s}
-                className="text-xs px-2 py-0.5 rounded-full"
-                style={{ background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}
+
+          {editMode ? (
+            <div className="space-y-3">
+              {[
+                { label: 'Full Name', key: 'name' as const, type: 'text' },
+                { label: 'Primary Role / Title', key: 'role' as const, type: 'text' },
+                { label: 'Years of Experience', key: 'yearsExperience' as const, type: 'number' },
+              ].map(({ label, key, type }) => (
+                <div key={key}>
+                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>{label}</label>
+                  <input
+                    type={type}
+                    value={editFields[key]}
+                    onChange={e => setEditFields(prev => prev ? { ...prev, [key]: type === 'number' ? Number(e.target.value) : e.target.value } : prev)}
+                    className="w-full rounded-xl px-3 py-2 text-sm"
+                    style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-primary)', outline: 'none' }}
+                  />
+                </div>
+              ))}
+              <div>
+                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Summary</label>
+                <textarea
+                  rows={3}
+                  value={editFields.summary}
+                  onChange={e => setEditFields(prev => prev ? { ...prev, summary: e.target.value } : prev)}
+                  className="w-full rounded-xl px-3 py-2 text-sm resize-none"
+                  style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-primary)', outline: 'none' }}
+                />
+              </div>
+              <button
+                onClick={saveEdits}
+                className="w-full py-2 rounded-xl text-sm text-white font-semibold"
+                style={{ background: 'var(--accent)' }}
               >
-                {s}
-              </span>
-            ))}
-          </div>
+                Save Changes
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-baseline gap-3 flex-wrap">
+                <span className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{parsedResume.name}</span>
+                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{parsedResume.role}</span>
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>
+                  {parsedResume.yearsExperience} yrs exp
+                </span>
+              </div>
+              {parsedResume.summary && (
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{parsedResume.summary}</p>
+              )}
+            </div>
+          )}
         </div>
 
-        <div className="flex gap-3">
+        {/* Skills */}
+        <div className="rounded-2xl p-5 space-y-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+          <h3 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>🛠 Skills Detected ({allSkills.length})</h3>
+          {allSkills.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {allSkills.map((s, i) => (
+                <span key={i} className="text-xs px-2.5 py-1 rounded-full"
+                  style={{ background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>
+                  {s}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs" style={{ color: 'var(--error)' }}>⚠️ No skills detected — your PDF may have unusual formatting. Try the &quot;Paste CV Text&quot; tab instead.</p>
+          )}
+        </div>
+
+        {/* Experience + Education — collapsible */}
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
           <button
-            onClick={() => router.push('/match/custom?autostart=true')}
-            className="flex-1 py-3 rounded-xl text-white font-semibold transition-colors"
-            style={{ background: 'var(--accent)' }}
+            onClick={() => setShowFullDetails(v => !v)}
+            className="w-full flex items-center justify-between px-5 py-3.5 text-left"
+            style={{ background: 'var(--bg-card)' }}
           >
-            Find Live Matches →
+            <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
+              {showFullDetails ? '▲' : '▼'} Experience &amp; Education ({parsedResume.experience?.length ?? 0} roles)
+            </span>
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>verify OCR accuracy</span>
           </button>
+          {showFullDetails && (
+            <div className="p-5 space-y-5" style={{ background: 'var(--bg-card)', borderTop: '1px solid var(--border)' }}>
+              {/* Experience */}
+              {parsedResume.experience?.length > 0 ? (
+                <div className="space-y-4">
+                  {parsedResume.experience.map((exp, i) => (
+                    <div key={i} className="space-y-1.5">
+                      <div className="flex items-start justify-between gap-2 flex-wrap">
+                        <div>
+                          <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{exp.title}</p>
+                          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{exp.company} · {exp.duration}</p>
+                        </div>
+                      </div>
+                      {exp.bullets?.length > 0 && (
+                        <ul className="space-y-1 ml-3">
+                          {exp.bullets.slice(0, 3).map((b, bi) => (
+                            <li key={bi} className="text-xs flex gap-2" style={{ color: 'var(--text-secondary)' }}>
+                              <span style={{ color: 'var(--text-muted)' }}>•</span>{b}
+                            </li>
+                          ))}
+                          {exp.bullets.length > 3 && (
+                            <li className="text-xs" style={{ color: 'var(--text-muted)' }}>+ {exp.bullets.length - 3} more…</li>
+                          )}
+                        </ul>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs" style={{ color: 'var(--error)' }}>⚠️ No experience entries detected.</p>
+              )}
+
+              {/* Education */}
+              {parsedResume.education?.length > 0 && (
+                <div className="space-y-2 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
+                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Education</p>
+                  {parsedResume.education.map((edu, i) => (
+                    <div key={i}>
+                      <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{edu.degree}</p>
+                      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{edu.institution} · {edu.year}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Something look wrong hint */}
+        <div className="flex items-center gap-2 px-1">
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Something look off?</span>
           <button
-            onClick={() => { setState('idle'); setParsedResume(null) }}
-            className="px-4 py-3 rounded-xl text-sm font-medium"
-            style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+            onClick={() => setEditMode(true)}
+            className="text-xs underline"
+            style={{ color: 'var(--accent)' }}
           >
-            Re-upload
+            Edit the key fields above
+          </button>
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>or</span>
+          <button
+            onClick={() => { setState('idle'); setParsedResume(null); setEditMode(false) }}
+            className="text-xs underline"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            re-upload
           </button>
         </div>
+
+        {/* CTA */}
+        <button
+          onClick={() => router.push('/match/custom?autostart=true')}
+          className="w-full py-3 rounded-xl text-white font-semibold transition-colors"
+          style={{ background: 'var(--accent)' }}
+        >
+          Looks good — Find Live Matches →
+        </button>
       </div>
     )
   }
