@@ -1,0 +1,2 @@
+from interview_system.agents.ats_analyzer import ats_analyzer_agent
+root_agent = ats_analyzer_agent

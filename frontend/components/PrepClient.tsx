@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import type { Vacancy } from '@/types/vacancy'
-import type { GeneratedQuestion, CodeChallenge, PrepSession, SolutionStep } from '@/types/session'
+import type { GeneratedQuestion, CodeChallenge, PrepSession, SolutionStep, ATSAnalysis } from '@/types/session'
 import { getPrepSession, savePrepSession } from '@/lib/session'
 import { collectSSEEvents } from '@/lib/adk-client'
 import { ADK_BASE, CODING_LANGUAGES } from '@/lib/constants'
@@ -13,7 +13,7 @@ interface Props {
   vacancy: Vacancy
 }
 
-type Tab = 'questions' | 'challenge'
+type Tab = 'questions' | 'challenge' | 'ats'
 
 export default function PrepClient({ vacancy }: Props) {
   const router = useRouter()
@@ -29,6 +29,12 @@ export default function PrepClient({ vacancy }: Props) {
   const [challengeText, setChallengeText] = useState('')
   const [challenge, setChallenge] = useState<CodeChallenge | null>(null)
   const [challengeError, setChallengeError] = useState('')
+
+  const [atsLoading, setAtsLoading] = useState(false)
+  const [atsText, setAtsText] = useState('')
+  const [atsAnalysis, setAtsAnalysis] = useState<ATSAnalysis | null>(null)
+  const [atsError, setAtsError] = useState('')
+  const [jdInput, setJdInput] = useState('')
 
   const [revealedAnswers, setRevealedAnswers] = useState<Set<string>>(new Set())
   const [expandedSteps, setExpandedSteps] = useState(false)
@@ -96,6 +102,16 @@ export default function PrepClient({ vacancy }: Props) {
       setSession(s)
       if (s.generatedQuestions) setQuestions(s.generatedQuestions)
       if (s.codeChallenge) setChallenge(s.codeChallenge)
+      if (s.atsAnalysis) setAtsAnalysis(s.atsAnalysis)
+    }
+    // Pre-fill JD textarea with vacancy description if available
+    if (vacancy.description) {
+      const jd = [
+        vacancy.description,
+        vacancy.requirements?.mustHave?.length ? `\n\nRequired: ${vacancy.requirements.mustHave.join(', ')}` : '',
+        vacancy.techStack?.length ? `\nTech Stack: ${vacancy.techStack.join(', ')}` : '',
+      ].join('')
+      setJdInput(jd)
     }
 
     // Warmup ping — silently wake the Cloud Run container so the first real
@@ -260,6 +276,84 @@ Return complete JSON CodeChallenge with: title, description, difficulty, languag
     setChallengeText('')
   }
 
+  async function runAtsCheck() {
+    if (!jdInput.trim()) return
+    setAtsLoading(true)
+    setAtsText('Connecting to ATS analyser…')
+    setAtsError('')
+
+    const userId = 'user-1'
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const sessionId = `ats-${crypto.randomUUID()}`
+      try {
+        if (attempt > 0) {
+          setAtsText('Agent warming up — retrying…')
+          await new Promise(r => setTimeout(r, 4000))
+        }
+
+        await createADKSession('ats_analyzer', userId, sessionId)
+
+        // Get resume from localStorage (custom or session)
+        let resume: unknown = null
+        try {
+          const raw = localStorage.getItem('tni_custom_resume')
+          if (raw) resume = JSON.parse(raw)
+        } catch { /* use null */ }
+
+        const prompt = resume
+          ? `Resume:\n${JSON.stringify(resume, null, 2)}\n\nJob Description:\n${jdInput}`
+          : `Resume (from match):\n${JSON.stringify({ role: vacancy.title, techStack: vacancy.techStack }, null, 2)}\n\nJob Description:\n${jdInput}`
+
+        setAtsText('Analysing keyword match…')
+        const events = await collectSSEEvents(`${ADK_BASE}/run_sse`, {
+          appName: 'ats_analyzer', userId, sessionId,
+          newMessage: { parts: [{ text: prompt }], role: 'user' },
+        })
+        setAtsText('Parsing results…')
+
+        // Extract ats_analysis from stateDelta (triple-fallback pattern)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let parsed: any = null
+        for (let i = events.length - 1; i >= 0; i--) {
+          const e = events[i]
+          const delta = e?.actions?.stateDelta?.['ats_analysis']
+          if (delta) {
+            if (typeof delta === 'object') { parsed = delta; break }
+            try { parsed = JSON.parse(delta); break } catch { /* try next */ }
+          }
+          const text = e?.content?.parts?.findLast?.((p: { text?: string }) => p.text)?.text
+          if (text) {
+            try { parsed = JSON.parse(text); break } catch { /* try next */ }
+            const m = text.match(/\{[\s\S]*\}/)
+            if (m) { try { parsed = JSON.parse(m[0]); break } catch { /* try next */ } }
+          }
+        }
+
+        if (!parsed?.atsScore) throw new Error('No ATS analysis returned')
+
+        const analysis = parsed as ATSAnalysis
+        setAtsAnalysis(analysis)
+        const baseSession: PrepSession = session ?? {
+          sessionId, resumeId: '', vacancyId: vacancy.id,
+          matchResult: { vacancyId: vacancy.id, overallScore: 0, breakdown: { skillsMatch: 0, experienceMatch: 0, techStackMatch: 0 }, matchedSkills: [], missingSkills: [], niceToHaveGaps: [], recommendation: 'good', strengthSummary: '', gapSummary: '' },
+          createdAt: new Date().toISOString(),
+        }
+        const updated: PrepSession = { ...baseSession, atsAnalysis: analysis, atsAnalysedAt: new Date().toISOString() }
+        savePrepSession(updated)
+        setSession(updated)
+        break
+
+      } catch (err) {
+        if (attempt < 1) continue
+        setAtsError(err instanceof Error ? err.message : 'ATS analysis failed — please try again')
+      }
+    }
+
+    setAtsLoading(false)
+    setAtsText('')
+  }
+
   function toggleReveal(id: string) {
     setRevealedAnswers(prev => {
       const next = new Set(prev)
@@ -288,19 +382,36 @@ Return complete JSON CodeChallenge with: title, description, difficulty, languag
     <div className="space-y-5">
       {/* Tabs + CTA */}
       <div className="flex flex-wrap items-center gap-2">
-        {(['questions', 'challenge'] as Tab[]).map(t => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors whitespace-nowrap"
-            style={tab === t
-              ? { background: 'var(--accent)', color: 'white' }
-              : { background: 'var(--bg-card)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }
-            }
-          >
-            {t === 'questions' ? `📝 Questions ${questions.length ? `(${questions.length})` : ''}` : `💻 Challenge ${challenge ? '✓' : ''}`}
-          </button>
-        ))}
+        <button
+          onClick={() => setTab('questions')}
+          className="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors whitespace-nowrap"
+          style={tab === 'questions'
+            ? { background: 'var(--accent)', color: 'white' }
+            : { background: 'var(--bg-card)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }
+          }
+        >
+          📝 Questions {questions.length ? `(${questions.length})` : ''}
+        </button>
+        <button
+          onClick={() => setTab('challenge')}
+          className="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors whitespace-nowrap"
+          style={tab === 'challenge'
+            ? { background: 'var(--accent)', color: 'white' }
+            : { background: 'var(--bg-card)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }
+          }
+        >
+          💻 Challenge {challenge ? '✓' : ''}
+        </button>
+        <button
+          onClick={() => setTab('ats')}
+          className="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors whitespace-nowrap"
+          style={tab === 'ats'
+            ? { background: 'var(--accent)', color: 'white' }
+            : { background: 'var(--bg-card)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }
+          }
+        >
+          🎯 ATS Check {atsAnalysis ? `(${atsAnalysis.atsScore}%)` : ''}
+        </button>
         {questions.length > 0 && (
           <button
             onClick={goToAssessment}
@@ -394,6 +505,194 @@ Return complete JSON CodeChallenge with: title, description, difficulty, languag
                 ))}
               </div>
             ))
+          )}
+        </div>
+      )}
+
+      {/* ATS Check Tab */}
+      {tab === 'ats' && (
+        <div className="space-y-5">
+          {/* Job Description input */}
+          <div className="rounded-2xl p-5 space-y-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Job Description</h3>
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Pre-filled from this vacancy</span>
+            </div>
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              Paste any job posting to check how well your resume would pass ATS screening — or use the pre-filled vacancy description below.
+            </p>
+            <textarea
+              value={jdInput}
+              onChange={e => setJdInput(e.target.value)}
+              rows={7}
+              placeholder="Paste the full job description here…"
+              className="w-full rounded-xl px-4 py-3 text-sm resize-y font-mono"
+              style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-primary)', outline: 'none', minHeight: '140px' }}
+            />
+            <div className="flex items-center justify-between">
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{jdInput.length.toLocaleString()} characters</span>
+              <button
+                onClick={runAtsCheck}
+                disabled={atsLoading || !jdInput.trim()}
+                className="px-6 py-2.5 rounded-xl text-white text-sm font-semibold transition-all disabled:opacity-60"
+                style={{ background: 'var(--accent)' }}
+              >
+                {atsLoading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
+                    Analysing…
+                  </span>
+                ) : '🎯 Run ATS Check →'}
+              </button>
+            </div>
+            {atsLoading && atsText && (
+              <div className="rounded-xl p-3 text-xs font-mono" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
+                {atsText}<span className="streaming-cursor" />
+              </div>
+            )}
+            {atsError && <p className="text-sm" style={{ color: 'var(--error)' }}>{atsError}</p>}
+          </div>
+
+          {/* ATS Results */}
+          {atsAnalysis && (
+            <div className="space-y-4">
+              {/* Score header */}
+              <div className="rounded-2xl p-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                <div className="flex items-center gap-6">
+                  {/* Score ring */}
+                  <div className="relative flex-shrink-0 w-24 h-24">
+                    <svg viewBox="0 0 36 36" className="w-24 h-24 -rotate-90">
+                      <circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--border)" strokeWidth="3" />
+                      <circle
+                        cx="18" cy="18" r="15.9" fill="none"
+                        stroke={atsAnalysis.atsScore >= 85 ? 'var(--success)' : atsAnalysis.atsScore >= 70 ? 'var(--accent)' : atsAnalysis.atsScore >= 50 ? '#f59e0b' : 'var(--error)'}
+                        strokeWidth="3"
+                        strokeDasharray={`${atsAnalysis.atsScore} ${100 - atsAnalysis.atsScore}`}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{atsAnalysis.atsScore}</span>
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>/ 100</span>
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
+                        atsAnalysis.verdict === 'excellent' ? 'badge-senior' :
+                        atsAnalysis.verdict === 'good' ? 'badge-mid' :
+                        atsAnalysis.verdict === 'needs_work' ? 'badge-junior' : 'badge-junior'
+                      }`}>
+                        {atsAnalysis.verdict === 'excellent' ? '✅ Excellent' :
+                         atsAnalysis.verdict === 'good' ? '👍 Good Match' :
+                         atsAnalysis.verdict === 'needs_work' ? '⚠️ Needs Work' : '❌ Poor Match'}
+                      </span>
+                    </div>
+                    <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{atsAnalysis.verdictSummary}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Keywords grid */}
+              <div className="grid sm:grid-cols-2 gap-4">
+                {/* Found */}
+                <div className="rounded-2xl p-5 space-y-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                  <h4 className="font-semibold text-sm" style={{ color: 'var(--success)' }}>✅ Keywords Found ({atsAnalysis.keywordsFound.length})</h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {atsAnalysis.keywordsFound.map((kw, i) => (
+                      <span key={i} className="text-xs px-2.5 py-1 rounded-full font-medium"
+                        style={{ background: 'rgba(5,150,105,0.1)', color: 'var(--success)', border: '1px solid rgba(5,150,105,0.2)' }}>
+                        {kw}
+                      </span>
+                    ))}
+                    {atsAnalysis.keywordsFound.length === 0 && (
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>None detected</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Missing */}
+                <div className="rounded-2xl p-5 space-y-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                  <h4 className="font-semibold text-sm" style={{ color: 'var(--error)' }}>❌ Missing Keywords ({atsAnalysis.keywordsMissing.length})</h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {atsAnalysis.keywordsMissing.map((kw, i) => (
+                      <span key={i} className="text-xs px-2.5 py-1 rounded-full font-medium"
+                        style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--error)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                        {kw}
+                      </span>
+                    ))}
+                    {atsAnalysis.keywordsMissing.length === 0 && (
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Nothing critical missing!</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Skills to add */}
+              {atsAnalysis.skillsToAdd.length > 0 && (
+                <div className="rounded-2xl p-5 space-y-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                  <h4 className="font-semibold text-sm" style={{ color: '#f59e0b' }}>🛠 Skills to Add to Your Resume</h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {atsAnalysis.skillsToAdd.map((s, i) => (
+                      <span key={i} className="text-xs px-2.5 py-1 rounded-full font-medium"
+                        style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>
+                        + {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Phrases + Formatting tips */}
+              <div className="grid sm:grid-cols-2 gap-4">
+                {atsAnalysis.phrasesToUse.length > 0 && (
+                  <div className="rounded-2xl p-5 space-y-2" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                    <h4 className="font-semibold text-sm" style={{ color: 'var(--accent)' }}>💬 Exact Phrases to Use</h4>
+                    {atsAnalysis.phrasesToUse.map((p, i) => (
+                      <p key={i} className="text-sm flex gap-2" style={{ color: 'var(--text-secondary)' }}>
+                        <span style={{ color: 'var(--accent)' }}>→</span> <em>&ldquo;{p}&rdquo;</em>
+                      </p>
+                    ))}
+                  </div>
+                )}
+                {atsAnalysis.formattingTips.length > 0 && (
+                  <div className="rounded-2xl p-5 space-y-2" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                    <h4 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>📄 Formatting Tips</h4>
+                    {atsAnalysis.formattingTips.map((t, i) => (
+                      <p key={i} className="text-sm flex gap-2" style={{ color: 'var(--text-secondary)' }}>
+                        <span>•</span> {t}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Tailored summary */}
+              {atsAnalysis.tailoredSummary && (
+                <div className="rounded-2xl p-5 space-y-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                  <h4 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>✍️ ATS-Optimised Professional Summary</h4>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{atsAnalysis.tailoredSummary}</p>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(atsAnalysis.tailoredSummary)}
+                    className="text-xs px-3 py-1.5 rounded-lg transition-colors"
+                    style={{ background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}
+                  >
+                    Copy to clipboard
+                  </button>
+                </div>
+              )}
+
+              {/* Re-run button */}
+              <div className="flex justify-center pt-2">
+                <button
+                  onClick={() => setAtsAnalysis(null)}
+                  className="text-xs px-4 py-2 rounded-xl transition-colors"
+                  style={{ color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                >
+                  ↩ Run again with different JD
+                </button>
+              </div>
+            </div>
           )}
         </div>
       )}

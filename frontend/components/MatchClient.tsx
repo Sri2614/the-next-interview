@@ -44,6 +44,11 @@ export default function MatchClient({ resume, vacancies, autoStart = false }: Pr
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null)
   const autoStarted = useRef(false)
 
+  // Search filters
+  const [targetRole, setTargetRole] = useState(resume.role)
+  const [targetLocation, setTargetLocation] = useState('Remote')
+  const [experienceLevel, setExperienceLevel] = useState<'any' | 'junior' | 'mid' | 'senior'>('any')
+
   // Auto-start matching when navigating from resume upload
   useEffect(() => {
     if (autoStart && !autoStarted.current && !matchResults) {
@@ -88,8 +93,8 @@ export default function MatchClient({ resume, vacancies, autoStart = false }: Pr
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          search_role: resume.role,
-          search_location: 'remote',
+          search_role: targetRole,
+          search_location: targetLocation,
         }),
       })
 
@@ -103,12 +108,16 @@ export default function MatchClient({ resume, vacancies, autoStart = false }: Pr
         experience: resume.experience,
       })
 
+      const levelHint = experienceLevel !== 'any'
+        ? ` Prefer roles suited for a ${experienceLevel}-level engineer.` : ''
+      const locationHint = targetLocation ? ` Candidate prefers: ${targetLocation}.` : ''
+
       const events = await collectSSEEvents(`${ADK_BASE}/run_sse`, {
         appName: APP,
         userId,
         sessionId,
         newMessage: {
-          parts: [{ text: `Match this resume against today's live vacancies:\n${resumeJson}` }],
+          parts: [{ text: `Match this resume against today's live vacancies for a "${targetRole}" role.${locationHint}${levelHint}\nResume:\n${resumeJson}` }],
           role: 'user',
         },
       })
@@ -271,22 +280,63 @@ export default function MatchClient({ resume, vacancies, autoStart = false }: Pr
         )}
 
         {!loading && (
-          <div className="text-center py-16 space-y-5">
-            <div className="text-6xl">🤖</div>
-            <div>
-              <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Ready to find your matches?</h2>
-              <p className="mt-2" style={{ color: 'var(--text-secondary)' }}>
-                Our AI fetches today&apos;s live job listings and scores them against your profile.
-              </p>
-              <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>
-                Takes ~30–60s · Cached for 24h after first run
-              </p>
+          <div className="space-y-6 py-8">
+            <div className="text-center space-y-2">
+              <div className="text-5xl">🤖</div>
+              <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Find your matches</h2>
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Takes ~30–60s · Cached 24h</p>
             </div>
+
+            {/* Search filters */}
+            <div className="max-w-xl mx-auto rounded-2xl p-5 space-y-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+              <p className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>Refine your search</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Target Role</label>
+                  <input
+                    value={targetRole}
+                    onChange={e => setTargetRole(e.target.value)}
+                    placeholder="e.g. Senior Backend Engineer"
+                    className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Location / Work Style</label>
+                  <input
+                    value={targetLocation}
+                    onChange={e => setTargetLocation(e.target.value)}
+                    placeholder="e.g. Remote, London, Hybrid"
+                    className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+                    style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Experience Level</label>
+                <div className="flex gap-2">
+                  {(['any', 'junior', 'mid', 'senior'] as const).map(lvl => (
+                    <button
+                      key={lvl}
+                      onClick={() => setExperienceLevel(lvl)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors"
+                      style={experienceLevel === lvl
+                        ? { background: 'var(--accent)', color: 'white' }
+                        : { background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+                    >
+                      {lvl === 'any' ? 'Any Level' : lvl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             {error && (
               <div className="max-w-md mx-auto rounded-xl px-4 py-3 text-sm" style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--error)', border: '1px solid rgba(239,68,68,0.3)' }}>
                 {error}
               </div>
             )}
+            <div className="text-center">
             <button
               onClick={runMatching}
               disabled={loading}
@@ -295,6 +345,7 @@ export default function MatchClient({ resume, vacancies, autoStart = false }: Pr
             >
               {'Find Live Matches →'}
             </button>
+            </div>
           </div>
         )}
       </div>

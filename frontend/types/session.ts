@@ -46,6 +46,18 @@ export interface CodeChallenge {
   relatedConcepts: string[]
 }
 
+export interface ATSAnalysis {
+  atsScore: number
+  verdict: 'excellent' | 'good' | 'needs_work' | 'poor'
+  verdictSummary: string
+  keywordsFound: string[]
+  keywordsMissing: string[]
+  skillsToAdd: string[]
+  phrasesToUse: string[]
+  formattingTips: string[]
+  tailoredSummary: string
+}
+
 export interface PrepSession {
   sessionId: string
   resumeId: string
@@ -56,6 +68,8 @@ export interface PrepSession {
   questionsGeneratedAt?: string
   codeChallenge?: CodeChallenge
   challengeGeneratedAt?: string
+  atsAnalysis?: ATSAnalysis
+  atsAnalysedAt?: string
 }
 
 export interface QuestionAnswer {

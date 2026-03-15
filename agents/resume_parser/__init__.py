@@ -70,7 +70,13 @@ Return ONLY a valid JSON object with this exact schema (no markdown, no explanat
 }
 
 Rules:
-- yearsExperience: calculate from earliest experience date to now (round to nearest integer)
+- yearsExperience: Calculate TOTAL years of full-time professional experience.
+  Method: for each role in the experience list, compute its actual duration in months.
+  For any end date marked "Present" or "Current", use March 2026 as today's date.
+  SUM all durations, then convert to years (round to nearest integer).
+  DO NOT simply subtract the earliest start year from today — gaps between jobs must NOT be counted.
+  DO NOT include education, student projects, or internships shorter than 3 months.
+  Example: Job A Jan 2020–Dec 2021 (24 months) + Job B Mar 2022–Mar 2024 (24 months) = 48 months = 4 years.
 - If a field has no data in the resume, use an empty array [] or empty string ""
 - Extract ALL technical skills mentioned anywhere in the resume
 - For skills.concepts include things like "microservices", "REST APIs", "agile", "TDD" etc.

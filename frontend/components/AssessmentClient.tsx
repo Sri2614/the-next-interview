@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import type { GeneratedQuestion, QuestionAnswer, AnswerEvaluation, AssessmentSession } from '@/types/session'
 import { getPrepSession, getAssessmentSession, saveAssessmentSession } from '@/lib/session'
@@ -9,6 +9,14 @@ import { collectSSEEvents } from '@/lib/adk-client'
 import { ADK_BASE } from '@/lib/constants'
 
 const APP = 'answer_evaluator'
+
+// Extend Window for webkit prefixed SpeechRecognition
+declare global {
+  interface Window {
+    SpeechRecognition: typeof SpeechRecognition
+    webkitSpeechRecognition: typeof SpeechRecognition
+  }
+}
 
 interface Props {
   sessionId: string
@@ -22,6 +30,10 @@ export default function AssessmentClient({ sessionId }: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [vacancyId, setVacancyId] = useState('')
+  const [isListening, setIsListening] = useState(false)
+  const [focusMode, setFocusMode] = useState(false)
+  const recognitionRef = useRef<InstanceType<typeof SpeechRecognition> | null>(null)
+  const sttSupported = typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
 
   useEffect(() => {
     const prep = getPrepSession()
@@ -42,6 +54,39 @@ export default function AssessmentClient({ sessionId }: Props) {
       router.push(`/report/${assessment.sessionId}`)
     }
   }, [router]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Focus mode: swap to light theme for easier long-session reading
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', focusMode ? 'light' : 'dark')
+    return () => { document.documentElement.setAttribute('data-theme', 'dark') }
+  }, [focusMode])
+
+  function toggleListening(questionId: string) {
+    if (!sttSupported) return
+    const SR = window.SpeechRecognition ?? window.webkitSpeechRecognition
+
+    if (isListening) {
+      recognitionRef.current?.stop()
+      setIsListening(false)
+      return
+    }
+
+    const rec = new SR()
+    rec.continuous = true
+    rec.interimResults = true
+    rec.lang = 'en-US'
+    rec.onresult = (event: SpeechRecognitionEvent) => {
+      const transcript = Array.from(event.results)
+        .map(r => r[0].transcript)
+        .join('')
+      setAnswers(prev => ({ ...prev, [questionId]: transcript }))
+    }
+    rec.onend = () => setIsListening(false)
+    rec.onerror = () => setIsListening(false)
+    rec.start()
+    recognitionRef.current = rec
+    setIsListening(true)
+  }
 
   if (questions.length === 0) {
     return (
@@ -146,6 +191,24 @@ Return JSON: { "evaluations": [...] }`
 
   return (
     <div className="space-y-5 max-w-3xl">
+
+      {/* Focus mode banner */}
+      <div className="flex items-center justify-between rounded-xl px-4 py-2.5 text-sm"
+        style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+        <span style={{ color: 'var(--text-muted)' }}>
+          {focusMode ? '🌤 Focus mode on — easier on the eyes' : '🌙 Tip: switch to Focus Mode for long sessions'}
+        </span>
+        <button
+          onClick={() => setFocusMode(f => !f)}
+          className="px-3 py-1 rounded-lg text-xs font-medium transition-colors"
+          style={focusMode
+            ? { background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }
+            : { border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+        >
+          {focusMode ? 'Exit Focus Mode' : 'Focus Mode'}
+        </button>
+      </div>
+
       {/* Progress */}
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
@@ -175,20 +238,41 @@ Return JSON: { "evaluations": [...] }`
           </div>
         )}
 
-        <textarea
-          value={answers[q.id] ?? ''}
-          onChange={e => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
-          placeholder="Type your answer here... Be thorough — explain your reasoning, mention trade-offs, and use specific examples from your experience."
-          rows={6}
-          className="w-full rounded-xl px-4 py-3 text-sm resize-y outline-none transition-colors"
-          style={{
-            minHeight: '140px',
-            background: 'var(--bg-base)',
-            border: '1px solid var(--border)',
-            color: 'var(--text-primary)',
-            fontFamily: 'inherit',
-          }}
-        />
+        <div className="relative">
+          <textarea
+            value={answers[q.id] ?? ''}
+            onChange={e => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+            placeholder="Type your answer here, or use the mic to speak your answer..."
+            rows={6}
+            className="w-full rounded-xl px-4 py-3 text-sm resize-y outline-none transition-colors"
+            style={{
+              minHeight: '140px',
+              paddingRight: '3rem',
+              background: 'var(--bg-base)',
+              border: isListening ? '1px solid var(--accent)' : '1px solid var(--border)',
+              color: 'var(--text-primary)',
+              fontFamily: 'inherit',
+            }}
+          />
+          {sttSupported && (
+            <button
+              onClick={() => toggleListening(q.id)}
+              title={isListening ? 'Stop recording' : 'Speak your answer'}
+              className="absolute top-3 right-3 w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+              style={isListening
+                ? { background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.4)' }
+                : { background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}
+            >
+              {isListening ? '⏹' : '🎤'}
+            </button>
+          )}
+          {isListening && (
+            <div className="absolute bottom-3 left-4 flex items-center gap-1.5 text-xs" style={{ color: '#ef4444' }}>
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              Listening…
+            </div>
+          )}
+        </div>
 
         <div className="flex items-center justify-between">
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>

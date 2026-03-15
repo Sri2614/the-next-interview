@@ -16,6 +16,7 @@
     "react-markdown": "^10.1.0"
   },
   "devDependencies": {
+    "@types/dom-speech-recognition": "^0.0.7",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
