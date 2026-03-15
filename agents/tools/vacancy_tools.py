@@ -69,7 +69,7 @@ def _format_salary(
     Returns "" if both min and max are None/0.
     Examples: "$120K-$160K/yr", "£45K-£55K/yr", "From $120K/yr"
     """
-    if not min_val and not max_val:
+    if (min_val is None or min_val == 0) and (max_val is None or max_val == 0):
         return ""
 
     sym = _CURRENCY_SYMBOLS.get(currency.upper(), currency.upper() + " ")
@@ -80,9 +80,9 @@ def _format_salary(
             return f"{sym}{v / 1000:.0f}K"
         return f"{sym}{v:.0f}"
 
-    if min_val and max_val:
+    if min_val is not None and max_val is not None:
         return f"{_fmt(min_val)}-{_fmt(max_val)}{suffix}"
-    if min_val:
+    if min_val is not None:
         return f"From {_fmt(min_val)}{suffix}"
     return f"Up to {_fmt(max_val)}{suffix}"
 
