@@ -68,19 +68,27 @@ export function clearAssessmentSession(): void {
 }
 
 // ─── Match Cache ──────────────────────────────────────────────────────────────
-// Keyed by resumeId so each resume has its own cached results.
+// Keyed by resumeId + role + location so changing role/location always fetches
+// fresh results instead of returning the previous search's cached data.
 
 import type { MatchResult } from '@/types/vacancy'
 
-export function saveMatchCache(resumeId: string, results: MatchResult[]): void {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(`tni_match_${resumeId}`, JSON.stringify({ results, cachedAt: Date.now() }))
+function matchCacheKey(resumeId: string, role: string, location: string): string {
+  // Normalise to lower-case slug so minor spacing/casing differences still hit cache
+  const r = role.toLowerCase().replace(/\s+/g, '-')
+  const l = location.toLowerCase().replace(/\s+/g, '-')
+  return `tni_match_${resumeId}_${r}_${l}`
 }
 
-export function getMatchCache(resumeId: string): MatchResult[] | null {
+export function saveMatchCache(resumeId: string, results: MatchResult[], role = '', location = ''): void {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(matchCacheKey(resumeId, role, location), JSON.stringify({ results, cachedAt: Date.now() }))
+}
+
+export function getMatchCache(resumeId: string, role = '', location = ''): MatchResult[] | null {
   if (typeof window === 'undefined') return null
   try {
-    const raw = localStorage.getItem(`tni_match_${resumeId}`)
+    const raw = localStorage.getItem(matchCacheKey(resumeId, role, location))
     if (!raw) return null
     const { results, cachedAt } = JSON.parse(raw)
     // Cache valid for 24 hours
@@ -93,7 +101,11 @@ export function getMatchCache(resumeId: string): MatchResult[] | null {
 
 export function clearMatchCache(resumeId: string): void {
   if (typeof window === 'undefined') return
-  localStorage.removeItem(`tni_match_${resumeId}`)
+  // Clear all cache entries for this resume (any role/location combo)
+  const prefix = `tni_match_${resumeId}`
+  Object.keys(localStorage)
+    .filter(k => k.startsWith(prefix))
+    .forEach(k => localStorage.removeItem(k))
 }
 
 // ─── Custom (Uploaded) Resume ─────────────────────────────────────────────────

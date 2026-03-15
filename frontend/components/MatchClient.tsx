@@ -105,7 +105,7 @@ export default function MatchClient({ resume, vacancies }: Props) {
 
   async function runMatching() {
     // Return cached results immediately if available
-    const cached = getMatchCache(resume.id)
+    const cached = getMatchCache(resume.id, targetRole, targetLocation)
     if (cached) {
       setMatchResults(cached)
       return
@@ -200,7 +200,7 @@ export default function MatchClient({ resume, vacancies }: Props) {
       // Sort by score descending and cache
       results.sort((a, b) => b.overallScore - a.overallScore)
       if (results.length === 0) throw new Error('No live jobs found for this search — try a different role or region')
-      saveMatchCache(resume.id, results)
+      saveMatchCache(resume.id, results, targetRole, targetLocation)
       // Save to Firestore if signed in (non-blocking)
       if (user) saveMatchesToFirestore(user.uid, targetRole, targetLocation, results)
       setMatchResults(results)
