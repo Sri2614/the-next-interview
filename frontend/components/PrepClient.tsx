@@ -254,7 +254,7 @@ Return JSON with { "questions": [...] } where each has: id, question, difficulty
         const prompt = `Generate a coding challenge for vacancy_id: ${vacancy.id}.
 Vacancy: ${JSON.stringify({ title: vacancy.title, industry: vacancy.industry, techStack: vacancy.techStack })}.
 Primary language: ${primaryLang ?? vacancy.techStack[0]}.
-Return complete JSON CodeChallenge with: title, description, difficulty, language, estimatedMinutes, starterCode, solution (code, steps[], timeComplexity, spaceComplexity, whyItWorks, commonMistakes[]), testCases[], followUps[], relatedConcepts[].`
+Return complete JSON CodeChallenge. CRITICAL: solution.code must be the COMPLETE working implementation (not the starter template). Fields: title, description, difficulty, language, estimatedMinutes, starterCode (object: {python, javascript, java}), solution ({code: complete_working_solution_string, steps[], timeComplexity, spaceComplexity, whyItWorks, commonMistakes[]}), testCases[], followUps[], relatedConcepts[]. Do NOT put the problem description in solution.code — it must be real executable code.`
 
         setChallengeText('Generating challenge…')
         const events = await collectSSEEvents(`${ADK_BASE}/run_sse`, {
@@ -914,6 +914,26 @@ Return complete JSON CodeChallenge with: title, description, difficulty, languag
                   {/* ── SOLUTION TAB ── */}
                   {challengeLeftTab === 'solution' && (
                     <div className="space-y-4">
+
+                      {/* Spoiler warning */}
+                      <div className="rounded-xl px-4 py-2.5 flex items-center gap-2 text-xs"
+                        style={{ background: 'rgba(245,158,11,.08)', border: '1px solid rgba(245,158,11,.25)', color: '#f59e0b' }}>
+                        ⚠️ Try to solve it yourself first — solution is below for reference only.
+                      </div>
+
+                      {/* ── Full solution code ── */}
+                      {(challenge.solution?.code || toStr(challenge.solution?.code)) && (
+                        <div className="space-y-2">
+                          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                            {challenge.language ?? 'Python'} Solution
+                          </p>
+                          <pre className="rounded-xl p-4 overflow-x-auto text-xs leading-relaxed"
+                            style={{ background: '#0d1117', border: '1px solid rgba(255,255,255,.08)', color: '#e2e8f0' }}>
+                            <code>{toStr(challenge.solution?.code)}</code>
+                          </pre>
+                        </div>
+                      )}
+
                       {/* Complexity */}
                       <div className="grid grid-cols-2 gap-3">
                         {[['⏱ Time', challenge.solution?.timeComplexity], ['🗂 Space', challenge.solution?.spaceComplexity]].map(([label, val]) => (
