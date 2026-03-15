@@ -31,7 +31,6 @@ export default function AssessmentClient({ sessionId }: Props) {
   const [error, setError] = useState('')
   const [vacancyId, setVacancyId] = useState('')
   const [isListening, setIsListening] = useState(false)
-  const [focusMode, setFocusMode] = useState(false)
   const recognitionRef = useRef<InstanceType<typeof SpeechRecognition> | null>(null)
   const sttSupported = typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
 
@@ -55,11 +54,6 @@ export default function AssessmentClient({ sessionId }: Props) {
     }
   }, [router]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Focus mode: swap to light theme for easier long-session reading
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', focusMode ? 'light' : 'dark')
-    return () => { document.documentElement.setAttribute('data-theme', 'dark') }
-  }, [focusMode])
 
   function toggleListening(questionId: string) {
     if (!sttSupported) return
@@ -191,23 +185,6 @@ Return JSON: { "evaluations": [...] }`
 
   return (
     <div className="space-y-5 max-w-3xl">
-
-      {/* Focus mode banner */}
-      <div className="flex items-center justify-between rounded-xl px-4 py-2.5 text-sm"
-        style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-        <span style={{ color: 'var(--text-muted)' }}>
-          {focusMode ? '🌤 Focus mode on — easier on the eyes' : '🌙 Tip: switch to Focus Mode for long sessions'}
-        </span>
-        <button
-          onClick={() => setFocusMode(f => !f)}
-          className="px-3 py-1 rounded-lg text-xs font-medium transition-colors"
-          style={focusMode
-            ? { background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }
-            : { border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
-        >
-          {focusMode ? 'Exit Focus Mode' : 'Focus Mode'}
-        </button>
-      </div>
 
       {/* Progress */}
       <div className="space-y-2">
