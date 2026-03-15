@@ -1,5 +1,6 @@
 import AssessmentClient from '@/components/AssessmentClient'
 import StepProgress from '@/components/StepProgress'
+import AuthGate from '@/components/AuthGate'
 
 interface Props {
   params: { sessionId: string }
@@ -24,7 +25,13 @@ export default function AssessmentPage({ params }: Props) {
           Answer each question as you would in a real interview. Your answers will be evaluated by AI.
         </p>
       </div>
-      <AssessmentClient sessionId={params.sessionId} />
+
+      <AuthGate
+        feature="Mock Interview"
+        description="Your AI-graded answers, scores and readiness report are saved to your profile so you can track improvement across attempts."
+      >
+        <AssessmentClient sessionId={params.sessionId} />
+      </AuthGate>
     </div>
   )
 }

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { upsertUserProfile } from '@/lib/firestore'
 
@@ -10,6 +11,7 @@ export default function AuthButton() {
   const { user, loading, signInWithGoogle, signOut } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const router = useRouter()
 
   // Save/update user profile in Firestore on sign-in
   useEffect(() => {
@@ -100,7 +102,7 @@ export default function AuthButton() {
             👤 My Profile
           </Link>
           <button
-            onClick={() => { signOut(); setMenuOpen(false) }}
+            onClick={async () => { setMenuOpen(false); await signOut(); router.push('/') }}
             className="flex items-center gap-2 w-full px-4 py-2 text-sm transition-colors hover:opacity-80"
             style={{ color: 'var(--text-secondary)' }}
           >

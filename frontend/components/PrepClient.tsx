@@ -3,11 +3,14 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
+import dynamic from 'next/dynamic'
 import type { Vacancy } from '@/types/vacancy'
 import type { GeneratedQuestion, CodeChallenge, PrepSession, SolutionStep, ATSAnalysis } from '@/types/session'
 import { getPrepSession, savePrepSession } from '@/lib/session'
 import { collectSSEEvents } from '@/lib/adk-client'
 import { ADK_BASE, CODING_LANGUAGES } from '@/lib/constants'
+
+const CodeEditor = dynamic(() => import('./CodeEditor'), { ssr: false })
 
 interface Props {
   vacancy: Vacancy
@@ -38,6 +41,12 @@ export default function PrepClient({ vacancy }: Props) {
 
   const [revealedAnswers, setRevealedAnswers] = useState<Set<string>>(new Set())
   const [expandedSteps, setExpandedSteps] = useState(false)
+
+  const [userCode, setUserCode] = useState<string>('')
+  const [codeLanguage, setCodeLanguage] = useState<'python' | 'javascript' | 'java'>('python')
+  const [runningCode, setRunningCode] = useState(false)
+  const [testResults, setTestResults] = useState<{passed: boolean; input: string; expected: string; got: string; error?: string}[]>([])
+  const [allPassed, setAllPassed] = useState<boolean | null>(null)
 
   // Safely coerce any value to an array — guards against the agent returning
   // a string, object, or null instead of a proper JS array.
@@ -256,6 +265,7 @@ Return complete JSON CodeChallenge with: title, description, difficulty, languag
 
         const c = parsed as unknown as CodeChallenge
         setChallenge(c)
+        setUserCode(c.starterCode ?? '')
         const baseSession = session ?? {
           sessionId, resumeId: '', vacancyId: vacancy.id,
           matchResult: { vacancyId: vacancy.id, overallScore: 0, breakdown: { skillsMatch: 0, experienceMatch: 0, techStackMatch: 0 }, matchedSkills: [], missingSkills: [], niceToHaveGaps: [], recommendation: 'good' as const, strengthSummary: '', gapSummary: '' },
@@ -360,6 +370,49 @@ Return complete JSON CodeChallenge with: title, description, difficulty, languag
       if (next.has(id)) { next.delete(id) } else { next.add(id) }
       return next
     })
+  }
+
+  const LANGUAGE_IDS: Record<string, number> = { python: 71, javascript: 63, java: 62 }
+
+  async function runCode() {
+    if (!challenge || !userCode.trim()) return
+    setRunningCode(true)
+    setTestResults([])
+    setAllPassed(null)
+
+    const results: typeof testResults = []
+    const testCases = toArr(challenge.testCases).slice(0, 3)
+
+    for (const tc of testCases) {
+      try {
+        const res = await fetch('/api/run-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code: userCode,
+            language_id: LANGUAGE_IDS[codeLanguage],
+            stdin: tc.input,
+          }),
+        })
+        const data = await res.json()
+        const stdout = (data.stdout ?? '').trim()
+        const expected = tc.expectedOutput.trim()
+        const passed = stdout === expected
+        results.push({
+          passed,
+          input: tc.input,
+          expected,
+          got: stdout || data.stderr || data.compile_output || 'No output',
+          error: data.status?.id > 3 ? (data.stderr || data.compile_output || data.status?.description) : undefined,
+        })
+      } catch {
+        results.push({ passed: false, input: tc.input, expected: tc.expectedOutput, got: 'Network error' })
+      }
+    }
+
+    setTestResults(results)
+    setAllPassed(results.every(r => r.passed))
+    setRunningCode(false)
   }
 
   function goToAssessment() {
@@ -731,125 +784,182 @@ Return complete JSON CodeChallenge with: title, description, difficulty, languag
               </button>
             </div>
           ) : (
-            <div className="space-y-5">
-              {/* Challenge header */}
-              <div className="rounded-2xl p-6 space-y-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{challenge.title}</h2>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className={`text-xs px-2.5 py-0.5 rounded-full badge-${challenge.difficulty}`}>{challenge.difficulty}</span>
-                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>~{challenge.estimatedMinutes} mins</span>
-                      <span className="text-xs font-medium" style={{ color: 'var(--accent)' }}>{challenge.language}</span>
-                    </div>
+            <div style={{ display: 'flex', gap: 16, height: 600, flexWrap: 'wrap' }}>
+              {/* LEFT PANE — problem description */}
+              <div style={{ width: 'clamp(280px, 45%, 100%)', flex: '1 1 280px', overflow: 'auto', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {/* Title + meta */}
+                <div>
+                  <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{challenge.title}</h2>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <span className={`text-xs px-2.5 py-0.5 rounded-full badge-${challenge.difficulty}`}>{challenge.difficulty}</span>
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>~{challenge.estimatedMinutes} mins</span>
+                    <span className="text-xs font-medium" style={{ color: 'var(--accent)' }}>{challenge.language}</span>
                   </div>
                 </div>
+
+                {/* Description */}
                 <div className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                   <Md>{toStr(challenge.description)}</Md>
                 </div>
-              </div>
 
-              {/* Starter code */}
-              <div className="rounded-2xl p-5 space-y-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-                <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Starter Code</h3>
-                <pre style={{ background: '#0d1117' }}><code style={{ color: '#e2e8f0' }}>{challenge.starterCode}</code></pre>
-              </div>
-
-              {/* Test cases */}
-              {toArr(challenge.testCases).length > 0 && (
-                <div className="rounded-2xl p-5 space-y-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-                  <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Test Cases</h3>
+                {/* Test Cases */}
+                {toArr(challenge.testCases).length > 0 && (
                   <div className="space-y-2">
+                    <h3 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Test Cases</h3>
                     {toArr(challenge.testCases).map((tc, i) => (
-                      <div key={i} className="rounded-xl p-3 text-sm" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}>
-                        <p className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
-                          {tc.description}
-                          {tc.isEdgeCase && <span className="ml-2 text-xs px-1.5 py-0.5 rounded" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>Edge case</span>}
-                        </p>
+                      <div key={i} className="rounded-xl p-3 text-xs" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}>
+                        {tc.description && (
+                          <p className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                            {tc.description}
+                            {tc.isEdgeCase && <span className="ml-2 px-1.5 py-0.5 rounded" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>Edge case</span>}
+                          </p>
+                        )}
                         <p style={{ color: 'var(--text-muted)' }}>Input: <code style={{ color: '#94a3b8' }}>{tc.input}</code></p>
                         <p style={{ color: 'var(--text-muted)' }}>Expected: <code style={{ color: 'var(--success)' }}>{tc.expectedOutput}</code></p>
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Solution (expandable) */}
-              <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-                <button
-                  onClick={() => setExpandedSteps(!expandedSteps)}
-                  className="w-full flex items-center justify-between px-5 py-4 text-left"
-                  style={{ background: 'var(--bg-card)' }}
-                >
-                  <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
-                    {expandedSteps ? '▲' : '▼'} Step-by-Step Solution
-                  </span>
-                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    {toArr(challenge.solution?.steps).length} steps · {challenge.solution?.timeComplexity}
-                  </span>
-                </button>
-                {expandedSteps && (
-                  <div className="p-5 space-y-6" style={{ background: 'var(--bg-card)', borderTop: '1px solid var(--border)' }}>
-                    {toArr(challenge.solution?.steps).map((rawStep, idx) => {
-                      const step = normalizeStep(rawStep, idx)
-                      return (
-                        <div key={step.stepNumber} className="space-y-2">
-                          <div className="flex items-center gap-3">
-                            <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}>
-                              {step.stepNumber}
+                {/* Solution accordion */}
+                <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+                  <button
+                    onClick={() => setExpandedSteps(!expandedSteps)}
+                    className="w-full flex items-center justify-between px-4 py-3 text-left"
+                    style={{ background: 'var(--bg-base)' }}
+                  >
+                    <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                      {expandedSteps ? '▲' : '▼'} View Solution
+                    </span>
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      {toArr(challenge.solution?.steps).length} steps · {challenge.solution?.timeComplexity}
+                    </span>
+                  </button>
+                  {expandedSteps && (
+                    <div className="p-4 space-y-5" style={{ borderTop: '1px solid var(--border)' }}>
+                      {toArr(challenge.solution?.steps).map((rawStep, idx) => {
+                        const step = normalizeStep(rawStep, idx)
+                        return (
+                          <div key={step.stepNumber} className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}>
+                                {step.stepNumber}
+                              </div>
+                              {step.title && (
+                                <h4 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{step.title}</h4>
+                              )}
                             </div>
-                            {step.title && (
-                              <h4 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{step.title}</h4>
+                            {step.explanation && (
+                              <div className="ml-8 text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                                <Md>{step.explanation}</Md>
+                              </div>
+                            )}
+                            {step.codeSnippet && (
+                              <pre className="ml-8 rounded-lg p-2 overflow-x-auto text-xs" style={{ background: '#0d1117' }}>
+                                <code style={{ color: '#e2e8f0' }}>{step.codeSnippet}</code>
+                              </pre>
                             )}
                           </div>
-                          {step.explanation && (
-                            <div className="ml-10 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                              <Md>{step.explanation}</Md>
-                            </div>
-                          )}
-                          {step.codeSnippet && (
-                            <pre className="ml-10 rounded-lg p-3 overflow-x-auto text-xs" style={{ background: '#0d1117' }}>
-                              <code style={{ color: '#e2e8f0' }}>{step.codeSnippet}</code>
-                            </pre>
-                          )}
+                        )
+                      })}
+                      <div className="rounded-xl p-3 space-y-1" style={{ background: 'rgba(5,150,105,0.06)', border: '1px solid rgba(5,150,105,0.18)' }}>
+                        <p className="text-xs font-semibold" style={{ color: 'var(--success)' }}>Why It Works</p>
+                        <div className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                          <Md>{toStr(challenge.solution?.whyItWorks)}</Md>
                         </div>
-                      )
-                    })}
-                    <div className="rounded-xl p-4 space-y-2" style={{ background: 'rgba(5,150,105,0.06)', border: '1px solid rgba(5,150,105,0.18)' }}>
-                      <p className="text-sm font-semibold" style={{ color: 'var(--success)' }}>Why It Works</p>
-                      <div className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                        <Md>{toStr(challenge.solution?.whyItWorks)}</Md>
                       </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="rounded-xl p-2" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}>
+                          <p className="font-semibold mb-0.5" style={{ color: 'var(--text-primary)' }}>Time</p>
+                          <p style={{ color: 'var(--accent)' }}>{challenge.solution?.timeComplexity}</p>
+                        </div>
+                        <div className="rounded-xl p-2" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}>
+                          <p className="font-semibold mb-0.5" style={{ color: 'var(--text-primary)' }}>Space</p>
+                          <p style={{ color: 'var(--accent)' }}>{challenge.solution?.spaceComplexity}</p>
+                        </div>
+                      </div>
+                      {toArr(challenge.solution?.commonMistakes).length > 0 && (
+                        <div className="space-y-1">
+                          <p className="text-xs font-semibold" style={{ color: 'var(--error)' }}>Common Mistakes</p>
+                          {toArr(challenge.solution?.commonMistakes).map((m, i) => (
+                            <div key={i} className="text-xs flex gap-1.5" style={{ color: 'var(--text-secondary)' }}>
+                              <span>⚠️</span>
+                              <Md>{toStr(m)}</Md>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {toArr(challenge.followUps).length > 0 && (
+                        <div className="space-y-1">
+                          <p className="text-xs font-semibold" style={{ color: '#f59e0b' }}>Follow-Up Questions</p>
+                          {toArr(challenge.followUps).map((fu, i) => (
+                            <p key={i} className="text-xs" style={{ color: 'var(--text-secondary)' }}>→ {fu}</p>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div className="rounded-xl p-3" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}>
-                        <p className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Time Complexity</p>
-                        <p style={{ color: 'var(--accent)' }}>{challenge.solution?.timeComplexity}</p>
-                      </div>
-                      <div className="rounded-xl p-3" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}>
-                        <p className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Space Complexity</p>
-                        <p style={{ color: 'var(--accent)' }}>{challenge.solution?.spaceComplexity}</p>
-                      </div>
-                    </div>
-                    {toArr(challenge.solution?.commonMistakes).length > 0 && (
-                      <div className="space-y-2">
-                        <p className="font-semibold text-sm" style={{ color: 'var(--error)' }}>Common Mistakes</p>
-                        {toArr(challenge.solution?.commonMistakes).map((m, i) => (
-                          <div key={i} className="text-sm flex gap-2" style={{ color: 'var(--text-secondary)' }}>
-                            <span>⚠️</span>
-                            <Md>{toStr(m)}</Md>
-                          </div>
-                        ))}
-                      </div>
+                  )}
+                </div>
+              </div>
+
+              {/* RIGHT PANE — editor + results */}
+              <div style={{ flex: '1 1 320px', display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
+                {/* Top bar: language selector + Run button */}
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <select
+                    value={codeLanguage}
+                    onChange={e => setCodeLanguage(e.target.value as 'python' | 'javascript' | 'java')}
+                    className="rounded-lg px-3 py-1.5 text-sm font-medium"
+                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', outline: 'none' }}
+                  >
+                    <option value="python">Python</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="java">Java</option>
+                  </select>
+                  <button
+                    onClick={runCode}
+                    disabled={runningCode}
+                    className="px-4 py-1.5 rounded-lg text-sm font-semibold text-white transition-all disabled:opacity-60"
+                    style={{ background: 'var(--accent)' }}
+                  >
+                    {runningCode ? '⏳ Running...' : '▶ Run Code'}
+                  </button>
+                </div>
+
+                {/* Monaco editor */}
+                <div style={{ flex: 1, minHeight: 0 }}>
+                  <CodeEditor
+                    value={userCode}
+                    onChange={setUserCode}
+                    language={codeLanguage}
+                    height="100%"
+                  />
+                </div>
+
+                {/* Test results */}
+                {testResults.length > 0 && (
+                  <div className="rounded-xl p-3 space-y-2" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', maxHeight: 200, overflow: 'auto' }}>
+                    {allPassed && (
+                      <p className="text-sm font-semibold" style={{ color: 'var(--success)' }}>All tests passed!</p>
                     )}
-                    {toArr(challenge.followUps).length > 0 && (
-                      <div className="space-y-2">
-                        <p className="font-semibold text-sm" style={{ color: '#f59e0b' }}>Follow-Up Questions</p>
-                        {toArr(challenge.followUps).map((fu, i) => (
-                          <p key={i} className="text-sm" style={{ color: 'var(--text-secondary)' }}>→ {fu}</p>
-                        ))}
+                    {testResults.map((r, i) => (
+                      <div
+                        key={i}
+                        className="rounded-lg p-2 text-xs space-y-0.5"
+                        style={{
+                          background: r.passed ? 'rgba(5,150,105,0.08)' : 'rgba(239,68,68,0.08)',
+                          border: `1px solid ${r.passed ? 'rgba(5,150,105,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                        }}
+                      >
+                        <p className="font-semibold" style={{ color: r.passed ? 'var(--success)' : 'var(--error)' }}>
+                          {r.passed ? '✅' : '❌'} Test {i + 1}
+                        </p>
+                        <p style={{ color: 'var(--text-muted)' }}>Input: <code style={{ color: '#94a3b8' }}>{r.input.length > 40 ? r.input.slice(0, 40) + '…' : r.input}</code></p>
+                        <p style={{ color: 'var(--text-muted)' }}>Expected: <code style={{ color: 'var(--success)' }}>{r.expected}</code></p>
+                        {!r.passed && <p style={{ color: 'var(--text-muted)' }}>Got: <code style={{ color: 'var(--error)' }}>{r.got.length > 60 ? r.got.slice(0, 60) + '…' : r.got}</code></p>}
+                        {r.error && <p style={{ color: 'var(--error)' }}>{r.error.length > 80 ? r.error.slice(0, 80) + '…' : r.error}</p>}
                       </div>
-                    )}
+                    ))}
                   </div>
                 )}
               </div>

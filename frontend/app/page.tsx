@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import ContinueFlowBanner from '@/components/ContinueFlowBanner'
 
 /* ─── Mock data ─────────────────────────────────────────────────────────────── */
 
@@ -62,6 +63,9 @@ const DASHOFFSET = CIRCUM * (1 - SCORE_PCT / 100)
 export default function HomePage() {
   return (
     <div className="space-y-14">
+
+      {/* ── Continue flow banner (client-side, only shows if session exists) ── */}
+      <ContinueFlowBanner />
 
       {/* ── Hero ──────────────────────────────────────────────────────────────── */}
       {/* Give the hero its own card background so it pops in both themes */}

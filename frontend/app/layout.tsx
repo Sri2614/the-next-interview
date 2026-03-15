@@ -51,6 +51,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </Link>
 
               <div className="flex items-center gap-3">
+                <Link
+                  href="/practice"
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors hover:opacity-80"
+                  style={{ color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+                >
+                  🏋️ Practice
+                </Link>
                 <ThemeToggle />
                 <AuthButton />
               </div>

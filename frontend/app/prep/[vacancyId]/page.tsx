@@ -2,6 +2,7 @@ import { getVacancyById } from '@/lib/mock-data'
 import { notFound } from 'next/navigation'
 import PrepClient from '@/components/PrepClient'
 import StepProgress from '@/components/StepProgress'
+import AuthGate from '@/components/AuthGate'
 
 interface Props {
   params: { vacancyId: string }
@@ -31,7 +32,13 @@ export default function PrepPage({ params }: Props) {
           {vacancy.company} · {vacancy.industry} · {vacancy.location}
         </p>
       </div>
-      <PrepClient vacancy={vacancy} />
+
+      <AuthGate
+        feature="Interview Prep"
+        description="Get 15 AI-tailored questions, a live coding challenge with test execution, and ATS score — all personalised to this specific role and your resume."
+      >
+        <PrepClient vacancy={vacancy} />
+      </AuthGate>
     </div>
   )
 }

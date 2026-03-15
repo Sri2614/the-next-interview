@@ -10,6 +10,7 @@ import { saveMatchesToFirestore, savePrepSessionToFirestore } from '@/lib/firest
 import { useAuth } from '@/contexts/AuthContext'
 import { collectSSEEvents } from '@/lib/adk-client'
 import { ADK_BASE } from '@/lib/constants'
+import MatchScoreModal from './MatchScoreModal'
 
 const PROGRESS_STEPS = [
   'Connecting to AI agents…',
@@ -87,6 +88,7 @@ export default function MatchClient({ resume, vacancies }: Props) {
   })
   const [targetLocation, setTargetLocation] = useState('Remote (Worldwide)')
   const [experienceLevel, setExperienceLevel] = useState<'any' | 'junior' | 'mid' | 'senior'>('any')
+  const [pendingMatch, setPendingMatch] = useState<MatchResult | null>(null) // for score modal
 
   // Cycle through progress messages while loading
   useEffect(() => {
@@ -208,6 +210,15 @@ export default function MatchClient({ resume, vacancies }: Props) {
   }
 
   function handleSelectVacancy(match: MatchResult) {
+    // Show score modal if below 80% threshold
+    if (match.overallScore < 80) {
+      setPendingMatch(match)
+      return
+    }
+    proceedToPrepWithMatch(match)
+  }
+
+  function proceedToPrepWithMatch(match: MatchResult) {
     // Look up local vacancy first (mock data)
     const localVacancy = vacancies.find(v => v.id === match.vacancyId)
 
@@ -530,6 +541,17 @@ export default function MatchClient({ resume, vacancies }: Props) {
           )
         })}
       </div>
+
+      {/* Score modal — shown when user clicks prep on a <80% job */}
+      {pendingMatch && (
+        <MatchScoreModal
+          score={pendingMatch.overallScore}
+          vacancyTitle={pendingMatch.vacancyTitle ?? pendingMatch.vacancyId}
+          company={pendingMatch.vacancyCompany ?? ''}
+          onClose={() => setPendingMatch(null)}
+          onProceed={() => { setPendingMatch(null); proceedToPrepWithMatch(pendingMatch) }}
+        />
+      )}
     </div>
   )
 }

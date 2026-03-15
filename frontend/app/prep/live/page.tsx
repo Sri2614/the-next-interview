@@ -15,6 +15,7 @@ import type { Vacancy } from '@/types/vacancy'
 import { getLiveVacancy } from '@/lib/session'
 import PrepClient from '@/components/PrepClient'
 import StepProgress from '@/components/StepProgress'
+import AuthGate from '@/components/AuthGate'
 
 // Inner component uses useSearchParams — must be inside <Suspense>
 function PrepLiveInner() {
@@ -102,7 +103,12 @@ function PrepLiveInner() {
         </p>
       </div>
 
-      <PrepClient vacancy={vacancy} />
+      <AuthGate
+        feature="Interview Prep"
+        description="Get 15 AI-tailored questions, a live coding challenge with test execution, and ATS score — all personalised to this specific role and your resume."
+      >
+        <PrepClient vacancy={vacancy} />
+      </AuthGate>
     </div>
   )
 }
