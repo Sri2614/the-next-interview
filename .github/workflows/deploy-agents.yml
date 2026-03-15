@@ -32,8 +32,7 @@ jobs:
           project_id: thesimplifiedtech
 
       - name: Submit Cloud Build
-        working-directory: agents
         run: |
           gcloud builds submit \
-            --config cloudbuild.yaml \
+            --config agents/cloudbuild.yaml \
             --project thesimplifiedtech
