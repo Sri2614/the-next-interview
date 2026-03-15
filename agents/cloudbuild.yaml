@@ -29,7 +29,7 @@ steps:
       - --allow-unauthenticated
       - --min-instances=1
       - --timeout=300
-      - --set-env-vars=GOOGLE_GENAI_USE_VERTEXAI=TRUE,GOOGLE_CLOUD_PROJECT=thesimplifiedtech,GOOGLE_CLOUD_LOCATION=us-central1
+      - --set-env-vars=GOOGLE_GENAI_USE_VERTEXAI=TRUE,GOOGLE_CLOUD_PROJECT=thesimplifiedtech,GOOGLE_CLOUD_LOCATION=us-central1,RAPIDAPI_KEY=2fcaab5e6bmsh3423a5d38499328p1a493ejsn2cc5e114d92d
 
 images:
   - us-central1-docker.pkg.dev/thesimplifiedtech/the-next-interview/agents:latest
