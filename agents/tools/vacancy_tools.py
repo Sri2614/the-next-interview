@@ -71,7 +71,16 @@ def _format_salary(
     Returns "" if both min and max are None/0.
     Examples: "$120K-$160K/yr", "£45K-£55K/yr", "From $120K/yr"
     """
+    # Return empty if both are None/zero
     if (min_val is None or min_val == 0) and (max_val is None or max_val == 0):
+        return ""
+    # Clamp negative sentinel values (e.g. -1 from JSearch) to None
+    if min_val is not None and min_val < 0:
+        min_val = None
+    if max_val is not None and max_val < 0:
+        max_val = None
+    # After clamping, check again if both are empty
+    if min_val is None and max_val is None:
         return ""
 
     sym = _CURRENCY_SYMBOLS.get(currency.upper(), currency.upper() + " ")
@@ -355,7 +364,7 @@ def _normalise_adzuna_job(j: dict[str, Any]) -> dict[str, Any]:
     job_id = str(j.get("id", ""))
 
     # Salary extraction — skip Adzuna's predicted/estimated salaries
-    is_predicted = bool(j.get("salary_is_predicted"))
+    is_predicted = str(j.get("salary_is_predicted", "0")) == "1"
     salary_str = ""
     if not is_predicted:
         salary_min = j.get("salary_min")

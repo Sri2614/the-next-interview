@@ -38,10 +38,10 @@ def _company_to_slug(name: str) -> str:
 # ── Job title to Levels.fyi job family mapping ────────────────────────────────
 
 _TITLE_TO_FAMILY: list[tuple[list[str], str]] = [
+    (["engineering manager", "eng manager", "software engineering manager"], "Software Engineering Manager"),
     (["software", "backend", "frontend", "full stack", "full-stack",
       "fullstack", "platform", "devops", "sre", "site reliability",
       "infrastructure", "systems"], "Software Engineering"),
-    (["engineering manager", "eng manager"], "Software Engineering Manager"),
     (["data scientist"], "Data Science"),
     (["data engineer", "data platform", "analytics engineer"], "Data Engineering"),
     (["product manager"], "Product Management"),

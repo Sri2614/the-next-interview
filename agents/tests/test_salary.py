@@ -101,6 +101,9 @@ class TestMatchJobFamily:
     def test_engineering_manager(self):
         assert _match_job_family("Engineering Manager, Payments") == "Software Engineering Manager"
 
+    def test_software_engineering_manager(self):
+        assert _match_job_family("Senior Software Engineering Manager") == "Software Engineering Manager"
+
     def test_no_match(self):
         assert _match_job_family("Office Manager") is None
 
