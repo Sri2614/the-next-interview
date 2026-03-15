@@ -315,7 +315,7 @@ export default function ProblemPage() {
                   <h3 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Python Solution</h3>
                   <pre
                     className="p-4 rounded-xl text-sm overflow-x-auto"
-                    style={{ background: 'var(--code-bg)', color: '#e2e8f0', border: '1px solid var(--border)' }}
+                    style={{ background: '#0d1117', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.08)' }}
                   >
                     {`# Optimal solution — try to understand each step\n${problem.starterCode.python.replace('pass\n', '# Your implementation would go here')}`}
                   </pre>
