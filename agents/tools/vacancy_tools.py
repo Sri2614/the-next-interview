@@ -350,12 +350,34 @@ def _normalise_adzuna_job(j: dict[str, Any]) -> dict[str, Any]:
     # Build unique ID from Adzuna's id field
     job_id = str(j.get("id", ""))
 
+    # Salary extraction — skip Adzuna's predicted/estimated salaries
+    is_predicted = bool(j.get("salary_is_predicted"))
+    salary_str = ""
+    if not is_predicted:
+        salary_min = j.get("salary_min")
+        salary_max = j.get("salary_max")
+        # Adzuna salaries are in local currency; map country to currency
+        currency_map = {
+            "GB": "GBP", "DE": "EUR", "NL": "EUR", "FR": "EUR",
+            "PL": "PLN", "AT": "EUR", "BE": "EUR", "CH": "CHF",
+            "SE": "SEK", "IE": "EUR", "US": "USD", "CA": "CAD",
+            "AU": "AUD", "IN": "INR",
+        }
+        currency = currency_map.get(country_code, "EUR")
+        salary_str = _format_salary(
+            float(salary_min) if salary_min else None,
+            float(salary_max) if salary_max else None,
+            currency,
+            "YEAR",
+        )
+
     return {
         "id":          f"adzuna-{job_id}"[:40],
         "title":       j.get("title") or "",
         "company":     company_name,
         "industry":    industry,
         "location":    location_parts or country_code,
+        "salaryRange": salary_str,
         "type":        "FULLTIME",
         "description": (j.get("description") or "")[:500],
         "requirements": {"mustHave": [], "niceToHave": [], "yearsExperience": 0},
