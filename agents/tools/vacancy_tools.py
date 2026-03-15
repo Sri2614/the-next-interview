@@ -23,6 +23,8 @@ from typing import Any
 
 from google.adk.tools import ToolContext
 
+from tools.salary_tools import enrich_salaries_from_levelsfyi
+
 logger = logging.getLogger(__name__)
 
 # Adzuna country codes for each region
@@ -155,7 +157,9 @@ def fetch_live_vacancies(tool_context: ToolContext) -> list[dict[str, Any]]:
             filtered = _merge_jobs(filtered, _call_jsearch(jsearch_key, role))
 
     logger.info("fetch_live_vacancies returning %d jobs", len(filtered))
-    return [_normalise_job(j) for j in filtered[:25]]
+    normalised = [_normalise_job(j) for j in filtered[:25]]
+    normalised = enrich_salaries_from_levelsfyi(normalised)
+    return normalised
 
 
 # ── JSearch ───────────────────────────────────────────────────────────────────
