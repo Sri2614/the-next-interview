@@ -43,6 +43,7 @@ export default function PrepClient({ vacancy }: Props) {
   const [challengeLeftTab, setChallengeLeftTab] = useState<'description' | 'solution' | 'followups'>('description')
 
   const [userCode, setUserCode] = useState<string>('')
+  const [codeByLang, setCodeByLang] = useState<Record<string, string>>({})
   const [codeLanguage, setCodeLanguage] = useState<'python' | 'javascript' | 'java'>('python')
   const [runningCode, setRunningCode] = useState(false)
   const [testResults, setTestResults] = useState<{passed: boolean; input: string; expected: string; got: string; error?: string}[]>([])
@@ -266,7 +267,14 @@ Return complete JSON CodeChallenge with: title, description, difficulty, languag
 
         const c = parsed as unknown as CodeChallenge
         setChallenge(c)
-        setUserCode(c.starterCode ?? '')
+        const initCode = {
+          python: getStarterForLang(c, 'python'),
+          javascript: getStarterForLang(c, 'javascript'),
+          java: getStarterForLang(c, 'java'),
+        }
+        setCodeByLang(initCode)
+        setCodeLanguage('python')
+        setUserCode(initCode.python)
         const baseSession = session ?? {
           sessionId, resumeId: '', vacancyId: vacancy.id,
           matchResult: { vacancyId: vacancy.id, overallScore: 0, breakdown: { skillsMatch: 0, experienceMatch: 0, techStackMatch: 0 }, matchedSkills: [], missingSkills: [], niceToHaveGaps: [], recommendation: 'good' as const, strengthSummary: '', gapSummary: '' },
@@ -374,6 +382,20 @@ Return complete JSON CodeChallenge with: title, description, difficulty, languag
   }
 
   const LANGUAGE_IDS: Record<string, number> = { python: 71, javascript: 63, java: 62 }
+
+
+  // ── Extract per-language starter code from challenge ──────────────────────
+  function getStarterForLang(c: CodeChallenge, lang: 'python' | 'javascript' | 'java'): string {
+    const sc = c.starterCode
+    if (typeof sc === 'object' && sc !== null) {
+      return (sc as Record<string, string>)[lang] ?? (sc as Record<string, string>).python ?? ''
+    }
+    // Fallback: if AI returned a plain string, use it for python; generate stubs for others
+    const pyCode = String(sc ?? '')
+    if (lang === 'python') return pyCode
+    if (lang === 'javascript') return '// Write your JavaScript solution here\nfunction solution() {\n  // TODO\n}'
+    return '// Write your Java solution here\nclass Solution {\n  public Object solution() {\n    // TODO\n    return null;\n  }\n}'
+  }
 
   async function runCode() {
     if (!challenge || !userCode.trim()) return
@@ -987,12 +1009,11 @@ Return complete JSON CodeChallenge with: title, description, difficulty, languag
                       <button
                         key={lang}
                         onClick={() => {
+                          // Save current code for the current language before switching
+                          setCodeByLang(prev => ({ ...prev, [codeLanguage]: userCode }))
                           setCodeLanguage(lang)
-                          setUserCode(
-                            lang === 'python' ? (challenge.starterCode ?? '') :
-                            lang === 'javascript' ? (challenge.starterCode ?? '') :
-                            (challenge.starterCode ?? '')
-                          )
+                          // Load the code for the target language (user's edits preserved)
+                          setUserCode(codeByLang[lang] ?? getStarterForLang(challenge, lang))
                         }}
                         className="px-2.5 py-1 rounded-md text-xs font-semibold transition-all"
                         style={{
@@ -1009,7 +1030,7 @@ Return complete JSON CodeChallenge with: title, description, difficulty, languag
                   <div className="flex items-center gap-2">
                     {/* Reset code */}
                     <button
-                      onClick={() => setUserCode(challenge.starterCode ?? '')}
+                      onClick={() => setUserCode(getStarterForLang(challenge, codeLanguage))}
                       className="text-xs px-2.5 py-1 rounded-md transition-opacity opacity-60 hover:opacity-100"
                       style={{ background: 'var(--bg-base)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
                       title="Reset to starter code"

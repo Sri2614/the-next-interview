@@ -32,7 +32,7 @@ export interface CodeChallenge {
   difficulty: DifficultyLevel
   language: string
   estimatedMinutes: number
-  starterCode: string
+  starterCode: string | { python: string; javascript: string; java: string }
   solution: {
     code: string
     steps: SolutionStep[]
