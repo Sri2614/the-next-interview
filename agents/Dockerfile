@@ -2,8 +2,8 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install dependencies
-COPY pyproject.toml .
+# Install dependencies — copy pyproject.toml from repo root context
+COPY agents/pyproject.toml .
 RUN pip install --no-cache-dir "hatchling" && \
     pip install --no-cache-dir \
         "google-adk>=1.0.0" \
@@ -11,9 +11,11 @@ RUN pip install --no-cache-dir "hatchling" && \
         "python-dotenv>=1.0.0" \
         "uvicorn[standard]"
 
-# Copy all agent code and data
-COPY . .
-COPY ../data ./data
+# Copy all agent code (from repo root context: agents/ → /app)
+COPY agents/ .
+
+# Copy shared mock data (lives at repo root /data, not inside /agents)
+COPY data/ ./data
 
 # Cloud Run injects PORT env var; default to 8080
 ENV PORT=8080
